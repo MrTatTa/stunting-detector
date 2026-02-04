@@ -1,3 +1,7 @@
+<?php
+require_once "../config.php";
+
+?>
 <!doctype html>
 
 <html
@@ -76,199 +80,81 @@
                 <table class="table table-hover">
                   <thead>
                     <tr>
-                      <th>Project</th>
-                      <th>Client</th>
-                      <th>Users</th>
-                      <th>Status</th>
-                      <th>Actions</th>
+                      <th>No</th>
+                      <th>Nama Ibu</th>
+                      <th>Usia</th>
+                      <th>Tinggi (cm)</th>
+                      <th>Berat (kg)</th>
+                      <th>LILA (cm)</th>
+                      <th>Hb (g/dL)</th>
+                      <th>Hasil Prediksi</th>
+                      <th>Aksi</th>
                     </tr>
                   </thead>
                   <tbody class="table-border-bottom-0">
-                    <tr>
-                      <td>
-                        <i class="icon-base bx bxl-angular icon-md text-danger me-4"></i> <span>Angular Project</span>
-                      </td>
-                      <td>Albert Cook</td>
-                      <td>
-                        <ul class="list-unstyled m-0 avatar-group d-flex align-items-center">
-                          <li
-                            data-bs-toggle="tooltip"
-                            data-popup="tooltip-custom"
-                            data-bs-placement="top"
-                            class="avatar avatar-xs pull-up"
-                            title="Lilian Fuller">
-                            <img src="../assets/img/avatars/2.png" alt="Avatar" class="rounded-circle" />
-                          </li>
-                          <li
-                            data-bs-toggle="tooltip"
-                            data-popup="tooltip-custom"
-                            data-bs-placement="top"
-                            class="avatar avatar-xs pull-up"
-                            title="Sophia Wilkerson">
-                            <img src="../assets/img/avatars/3.png" alt="Avatar" class="rounded-circle" />
-                          </li>
-                          <li
-                            data-bs-toggle="tooltip"
-                            data-popup="tooltip-custom"
-                            data-bs-placement="top"
-                            class="avatar avatar-xs pull-up"
-                            title="Christina Parker">
-                            <img src="../assets/img/avatars/4.png" alt="Avatar" class="rounded-circle" />
-                          </li>
-                        </ul>
-                      </td>
-                      <td><span class="badge bg-label-primary me-1">Active</span></td>
-                      <td>
-                        <div class="dropdown">
-                          <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                            <i class="icon-base bx bx-dots-vertical-rounded"></i>
-                          </button>
-                          <div class="dropdown-menu">
-                            <a class="dropdown-item" href="javascript:void(0);"><i class="icon-base bx bx-edit-alt me-1"></i> Edit</a>
-                            <a class="dropdown-item" href="javascript:void(0);"><i class="icon-base bx bx-trash me-1"></i> Delete</a>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <i class="icon-base bx bxl-react icon-md text-info me-4"></i> <span>React Project</span>
-                      </td>
-                      <td>Barry Hunter</td>
-                      <td>
-                        <ul class="list-unstyled m-0 avatar-group d-flex align-items-center">
-                          <li
-                            data-bs-toggle="tooltip"
-                            data-popup="tooltip-custom"
-                            data-bs-placement="top"
-                            class="avatar avatar-xs pull-up"
-                            title="Lilian Fuller">
-                            <img src="../assets/img/avatars/2.png" alt="Avatar" class="rounded-circle" />
-                          </li>
-                          <li
-                            data-bs-toggle="tooltip"
-                            data-popup="tooltip-custom"
-                            data-bs-placement="top"
-                            class="avatar avatar-xs pull-up"
-                            title="Sophia Wilkerson">
-                            <img src="../assets/img/avatars/3.png" alt="Avatar" class="rounded-circle" />
-                          </li>
-                          <li
-                            data-bs-toggle="tooltip"
-                            data-popup="tooltip-custom"
-                            data-bs-placement="top"
-                            class="avatar avatar-xs pull-up"
-                            title="Christina Parker">
-                            <img src="../assets/img/avatars/4.png" alt="Avatar" class="rounded-circle" />
-                          </li>
-                        </ul>
-                      </td>
-                      <td><span class="badge bg-label-success me-1">Completed</span></td>
-                      <td>
-                        <div class="dropdown">
-                          <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                            <i class="icon-base bx bx-dots-vertical-rounded"></i>
-                          </button>
-                          <div class="dropdown-menu">
-                            <a class="dropdown-item" href="javascript:void(0);"><i class="icon-base bx bx-edit-alt me-1"></i> Edit</a>
-                            <a class="dropdown-item" href="javascript:void(0);"><i class="icon-base bx bx-trash me-1"></i> Delete</a>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <i class="icon-base bx bxl-vuejs icon-md text-success me-4"></i> <span>VueJs Project</span>
-                      </td>
-                      <td>Trevor Baker</td>
-                      <td>
-                        <ul class="list-unstyled m-0 avatar-group d-flex align-items-center">
-                          <li
-                            data-bs-toggle="tooltip"
-                            data-popup="tooltip-custom"
-                            data-bs-placement="top"
-                            class="avatar avatar-xs pull-up"
-                            title="Lilian Fuller">
-                            <img src="../assets/img/avatars/2.png" alt="Avatar" class="rounded-circle" />
-                          </li>
-                          <li
-                            data-bs-toggle="tooltip"
-                            data-popup="tooltip-custom"
-                            data-bs-placement="top"
-                            class="avatar avatar-xs pull-up"
-                            title="Sophia Wilkerson">
-                            <img src="../assets/img/avatars/3.png" alt="Avatar" class="rounded-circle" />
-                          </li>
-                          <li
-                            data-bs-toggle="tooltip"
-                            data-popup="tooltip-custom"
-                            data-bs-placement="top"
-                            class="avatar avatar-xs pull-up"
-                            title="Christina Parker">
-                            <img src="../assets/img/avatars/4.png" alt="Avatar" class="rounded-circle" />
-                          </li>
-                        </ul>
-                      </td>
-                      <td><span class="badge bg-label-info me-1">Scheduled</span></td>
-                      <td>
-                        <div class="dropdown">
-                          <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                            <i class="icon-base bx bx-dots-vertical-rounded"></i>
-                          </button>
-                          <div class="dropdown-menu">
-                            <a class="dropdown-item" href="javascript:void(0);"><i class="icon-base bx bx-edit-alt me-1"></i> Edit</a>
-                            <a class="dropdown-item" href="javascript:void(0);"><i class="icon-base bx bx-trash me-1"></i> Delete</a>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <i class="icon-base bx bxl-bootstrap icon-md text-primary me-4"></i>
-                        <span>Bootstrap Project</span>
-                      </td>
-                      <td>Jerry Milton</td>
-                      <td>
-                        <ul class="list-unstyled m-0 avatar-group d-flex align-items-center">
-                          <li
-                            data-bs-toggle="tooltip"
-                            data-popup="tooltip-custom"
-                            data-bs-placement="top"
-                            class="avatar avatar-xs pull-up"
-                            title="Lilian Fuller">
-                            <img src="../assets/img/avatars/2.png" alt="Avatar" class="rounded-circle" />
-                          </li>
-                          <li
-                            data-bs-toggle="tooltip"
-                            data-popup="tooltip-custom"
-                            data-bs-placement="top"
-                            class="avatar avatar-xs pull-up"
-                            title="Sophia Wilkerson">
-                            <img src="../assets/img/avatars/3.png" alt="Avatar" class="rounded-circle" />
-                          </li>
-                          <li
-                            data-bs-toggle="tooltip"
-                            data-popup="tooltip-custom"
-                            data-bs-placement="top"
-                            class="avatar avatar-xs pull-up"
-                            title="Christina Parker">
-                            <img src="../assets/img/avatars/4.png" alt="Avatar" class="rounded-circle" />
-                          </li>
-                        </ul>
-                      </td>
-                      <td><span class="badge bg-label-warning me-1">Pending</span></td>
-                      <td>
-                        <div class="dropdown">
-                          <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                            <i class="icon-base bx bx-dots-vertical-rounded"></i>
-                          </button>
-                          <div class="dropdown-menu">
-                            <a class="dropdown-item" href="javascript:void(0);"><i class="icon-base bx bx-edit-alt me-1"></i> Edit</a>
-                            <a class="dropdown-item" href="javascript:void(0);"><i class="icon-base bx bx-trash me-1"></i> Delete</a>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
+                    <?php
+                    $no = 1;
+                    $query = "
+    SELECT
+        ibu_hamil.*,
+        prediksi.hasil
+    FROM ibu_hamil
+    LEFT JOIN prediksi ON prediksi.ibu_id = ibu_hamil.id
+    ORDER BY ibu_hamil.created_at DESC
+";
+                    $result = mysqli_query($conn, $query);
+
+                    if (mysqli_num_rows($result) > 0) :
+                      while ($row = mysqli_fetch_assoc($result)) :
+                    ?>
+                        <tr>
+                          <td><?= $no++ ?></td>
+                          <td><?= htmlspecialchars($row['nama_ibu']) ?></td>
+                          <td><?= $row['usia'] ?> th</td>
+                          <td><?= $row['tinggi_badan'] ?></td>
+                          <td><?= $row['berat_badan'] ?></td>
+                          <td><?= $row['lingkar_lengan_atas'] ?></td>
+                          <td><?= $row['kadar_hb'] ?></td>
+
+                          <td>
+                            <?php if ($row['hasil'] == 'Berisiko Stunting') : ?>
+                              <span class="badge bg-label-danger">Berisiko</span>
+                            <?php elseif ($row['hasil'] == 'Tidak Berisiko') : ?>
+                              <span class="badge bg-label-success">Tidak Berisiko</span>
+                            <?php else : ?>
+                              <span class="badge bg-label-secondary">Belum Diprediksi</span>
+                            <?php endif; ?>
+                          </td>
+
+                          <td>
+                            <div class="dropdown">
+                              <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                <i class="icon-base bx bx-dots-vertical-rounded"></i>
+                              </button>
+                              <div class="dropdown-menu">
+                                <a class="dropdown-item" href="detail.php?id=<?= $row['id'] ?>">
+                                  <i class="icon-base bx bx-show me-1"></i> Detail
+                                </a>
+                                <a class="dropdown-item" href="edit.php?id=<?= $row['id'] ?>">
+                                  <i class="icon-base bx bx-edit-alt me-1"></i> Edit
+                                </a>
+                                <a class="dropdown-item text-danger" href="hapus.php?id=<?= $row['id'] ?>" onclick="return confirm('Yakin hapus data?')">
+                                  <i class="icon-base bx bx-trash me-1"></i> Hapus
+                                </a>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      <?php
+                      endwhile;
+                    else :
+                      ?>
+                      <tr>
+                        <td colspan="9" class="text-center text-muted py-4">
+                          Tidak ada data
+                        </td>
+                      </tr>
+                    <?php endif; ?>
                   </tbody>
                 </table>
               </div>

@@ -70,14 +70,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
   <ul class="menu-inner py-1">
     <!-- Dashboards -->
-    <li class="menu-item <?= $currentPage == 'index.php' ? 'active open' : '' ?>">
+    <li class="menu-item <?= $currentPage == 'home.php' ? 'active open' : '' ?>">
       <a href="javascript:void(0);" class="menu-link menu-toggle">
         <i class="menu-icon tf-icons bx bx-home-smile"></i>
         <div class="text-truncate">Dashboards</div>
       </a>
       <ul class="menu-sub">
-        <li class="menu-item <?= $currentPage == 'index.php' ? 'active' : '' ?>">
-          <a href="index.php" class="menu-link">
+        <li class="menu-item <?= $currentPage == 'home.php' ? 'active' : '' ?>">
+          <a href="home.php" class="menu-link">
             <div class="text-truncate">Analytics</div>
           </a>
         </li>
