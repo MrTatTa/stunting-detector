@@ -75,7 +75,7 @@ require_once "../config.php";
           <div class="container-xxl flex-grow-1 container-p-y">
             <!-- Hoverable Table rows -->
             <div class="card">
-              <h5 class="card-header">Hoverable rows</h5>
+              <h5 class="card-header">Data Prediksi</h5>
               <div class="table-responsive text-nowrap">
                 <table class="table table-hover">
                   <thead>
@@ -84,7 +84,6 @@ require_once "../config.php";
                       <th>Nama Ibu</th>
                       <th>Usia</th>
                       <th>Tinggi (cm)</th>
-                      <th>Berat (kg)</th>
                       <th>LILA (cm)</th>
                       <th>Hb (g/dL)</th>
                       <th>Hasil Prediksi</th>
@@ -114,8 +113,6 @@ require_once "../config.php";
                           <td><?= (int)$row['usia'] ?> th</td>
 
                           <td><?= (float)$row['tinggi_badan'] ?></td>
-
-                          <td><?= (float)$row['berat_badan'] ?></td>
 
                           <td><?= (float)$row['lingkar_lengan_atas'] ?></td>
 

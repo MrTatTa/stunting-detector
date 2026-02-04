@@ -14,14 +14,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $nama_ibu = htmlspecialchars(trim($_POST['nama_ibu']));
   $usia     = (int) $_POST['usia'];
   $tinggi   = (float) $_POST['tinggi_badan'];
-  $berat    = (float) $_POST['berat_badan']; // TIDAK dipakai ML
   $lila     = (float) $_POST['lingkar_lengan_atas'];
   $hb       = (float) $_POST['kadar_hb'];
 
   // ===============================
   // VALIDASI
   // ===============================
-  if ($usia <= 0 || $tinggi <= 0 || $berat <= 0 || $lila <= 0 || $hb <= 0) {
+  if ($usia <= 0 || $tinggi <= 0 || $lila <= 0 || $hb <= 0) {
     $pesan = "<div class='alert alert-danger'>Input tidak valid.</div>";
     return;
   }
@@ -32,8 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $stmt = mysqli_prepare(
     $conn,
     "INSERT INTO ibu_hamil
-     (nama_ibu, usia, tinggi_badan, berat_badan, lingkar_lengan_atas, kadar_hb, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?)"
+     (nama_ibu, usia, tinggi_badan, lingkar_lengan_atas, kadar_hb, created_by)
+     VALUES (?, ?, ?, ?, ?, ?)"
   );
 
   $created_by = $_SESSION['user_id'] ?? null;
@@ -44,7 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nama_ibu,
     $usia,
     $tinggi,
-    $berat,
     $lila,
     $hb,
     $created_by
@@ -240,34 +238,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                       <div>
                         <label class="form-label">Nama Ibu</label>
-                        <input type="text" name="nama_ibu" class="form-control" required>
+                        <input type="text" name="nama_ibu" class="form-control" placeholder="Nama lengkap" required>
                       </div>
 
                       <div>
                         <label class="form-label">Usia Ibu</label>
-                        <input type="number" name="usia" class="form-control" required>
+                        <input type="number" name="usia" class="form-control" placeholder="Masukkan usia ibu" required>
                       </div>
 
                       <div>
                         <label class="form-label">Tinggi Badan</label>
                         <div class="input-group">
-                          <input type="number" step="0.1" name="tinggi_badan" class="form-control" required>
+                          <input type="number" step="0.1" name="tinggi_badan" class="form-control" placeholder="Masukkan tinggi badan" required>
                           <span class="input-group-text">cm</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label class="form-label">Berat Badan</label>
-                        <div class="input-group">
-                          <input type="number" step="0.1" name="berat_badan" class="form-control" required>
-                          <span class="input-group-text">kg</span>
                         </div>
                       </div>
 
                       <div>
                         <label class="form-label">Lingkar Lengan Atas (LILA)</label>
                         <div class="input-group">
-                          <input type="number" step="0.1" name="lingkar_lengan_atas" class="form-control" required>
+                          <input type="number" step="0.1" name="lingkar_lengan_atas" class="form-control" placeholder="Masukkan lingkar lengan atas" required>
                           <span class="input-group-text">cm</span>
                         </div>
                       </div>
@@ -275,14 +265,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                       <div>
                         <label class="form-label">Kadar Hemoglobin</label>
                         <div class="input-group">
-                          <input type="number" step="0.1" name="kadar_hb" class="form-control" required>
+                          <input type="number" step="0.1" name="kadar_hb" class="form-control" placeholder="Masukkan kadar hemoglobin" required>
                           <span class="input-group-text">g/dL</span>
                         </div>
                       </div>
 
                       <div class="demo-inline-spacing text-end">
                         <button type="submit" class="btn btn-primary">Prediksi</button>
-                        <button type="reset" class="btn btn-secondary">Batal</button>
+                        <button type="reset" class="btn btn-secondary">Reset</button>
                       </div>
 
                     </div>
