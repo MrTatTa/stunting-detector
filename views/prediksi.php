@@ -1,3 +1,159 @@
+<?php
+require_once "../config.php";
+
+$pesan = "";
+
+// ===============================
+// PROSES FORM
+// ===============================
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+  // ===============================
+  // AMBIL DATA FORM
+  // ===============================
+  $nama_ibu = htmlspecialchars(trim($_POST['nama_ibu']));
+  $usia     = (int) $_POST['usia'];
+  $tinggi   = (float) $_POST['tinggi_badan'];
+  $berat    = (float) $_POST['berat_badan']; // TIDAK dipakai ML
+  $lila     = (float) $_POST['lingkar_lengan_atas'];
+  $hb       = (float) $_POST['kadar_hb'];
+
+  // ===============================
+  // VALIDASI
+  // ===============================
+  if ($usia <= 0 || $tinggi <= 0 || $berat <= 0 || $lila <= 0 || $hb <= 0) {
+    $pesan = "<div class='alert alert-danger'>Input tidak valid.</div>";
+    return;
+  }
+
+  // ===============================
+  // SIMPAN DATA IBU HAMIL
+  // ===============================
+  $stmt = mysqli_prepare(
+    $conn,
+    "INSERT INTO ibu_hamil
+     (nama_ibu, usia, tinggi_badan, berat_badan, lingkar_lengan_atas, kadar_hb, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?)"
+  );
+
+  $created_by = $_SESSION['user_id'] ?? null;
+
+  mysqli_stmt_bind_param(
+    $stmt,
+    "siddddi",
+    $nama_ibu,
+    $usia,
+    $tinggi,
+    $berat,
+    $lila,
+    $hb,
+    $created_by
+  );
+
+  if (!mysqli_stmt_execute($stmt)) {
+    $pesan = "<div class='alert alert-danger'>Gagal menyimpan data ibu.</div>";
+    return;
+  }
+
+  // ===============================
+  // AMBIL ID IBU
+  // ===============================
+  $ibu_id = mysqli_insert_id($conn);
+
+  // ===============================
+  // PANGGIL PYTHON
+  // ===============================
+  $python = "../python/python.exe";
+  $script = "../python/predict.py";
+
+  // HANYA 4 PARAMETER SESUAI MODEL
+  $command = "\"$python\" \"$script\" $usia $tinggi $lila $hb 2>&1";
+  $output = shell_exec($command);
+
+  if ($output === null || trim($output) === "") {
+    die("Python tidak mengembalikan output.<pre>$command</pre>");
+  }
+
+  $result = json_decode($output, true);
+
+  // ===============================
+  // MAPPING HASIL KE ENUM DATABASE
+  // ===============================
+  $hasil_db = null;
+
+  if ($result['hasil'] === 'STUNTING') {
+    $hasil_db = 'Berisiko Stunting';
+  } elseif ($result['hasil'] === 'NORMAL') {
+    $hasil_db = 'Tidak Berisiko';
+  }
+
+
+  if (json_last_error() !== JSON_ERROR_NONE) {
+    die("Output Python bukan JSON valid:<pre>$output</pre>");
+  }
+
+  // ===============================
+  // SIMPAN HASIL PREDIKSI
+  // ===============================
+  $stmt = mysqli_prepare(
+    $conn,
+    "INSERT INTO prediksi (ibu_id, hasil, probabilitas)
+     VALUES (?, ?, ?)"
+  );
+
+  mysqli_stmt_bind_param(
+    $stmt,
+    "isd",
+    $ibu_id,
+    $hasil_db,
+    $result['probabilitas']
+  );
+
+  mysqli_stmt_execute($stmt);
+  $prediksi_id = mysqli_insert_id($conn);
+
+  // ===============================
+  // SIMPAN FAKTOR RISIKO
+  // ===============================
+  $map = [
+    'usia' => $usia,
+    'tinggi_badan' => $tinggi,
+    'lila' => $lila,
+    'hb' => $hb
+  ];
+
+  foreach ($result['faktor'] as $param => $kontribusi) {
+
+    $nilai = $map[$param] ?? 0;
+
+    $stmt = mysqli_prepare(
+      $conn,
+      "INSERT INTO faktor_risiko
+     (prediksi_id, parameter, nilai, kontribusi)
+     VALUES (?, ?, ?, ?)"
+    );
+
+    mysqli_stmt_bind_param(
+      $stmt,
+      "isdd",
+      $prediksi_id,
+      $param,
+      $nilai,
+      $kontribusi
+    );
+
+    mysqli_stmt_execute($stmt);
+  }
+
+  // ===============================
+  // PESAN SUKSES
+  // ===============================
+  $pesan = "<div class='alert alert-success'>
+              Data berhasil disimpan dan diprediksi.
+            </div>";
+}
+?>
+
 <!doctype html>
 
 <html
@@ -73,77 +229,66 @@
           <div class="container-xxl flex-grow-1 container-p-y">
             <div class="row g-6 mb-6">
               <!-- Basic -->
-              <div class="col-md-6">
-                <div class="card">
-                  <h5 class="card-header">Prediksi Potensi Stunting</h5>
-                  <div class="card-body demo-vertical-spacing demo-only-element">
-                    <div class="input-group">
-                      <span class="input-group-text" id="basic-addon11">Nama Ibu</span>
-                      <input
-                        type="text"
-                        class="form-control"
-                        placeholder="Nama Lengkap"
-                        aria-label="Nama Lengkap"
-                        aria-describedby="basic-addon11" />
-                    </div>
+              <form method="POST">
+                <div class="col-md-6">
+                  <div class="card">
+                    <h5 class="card-header">Prediksi Potensi Stunting</h5>
 
-                    <div class="input-group">
-                      <span class="input-group-text" id="basic-addon11">Usia Ibu</span>
-                      <input
-                        type="text"
-                        class="form-control"
-                        placeholder="Usia Ibu"
-                        aria-label="Usia Ibu"
-                        aria-describedby="basic-addon11" />
-                    </div>
+                    <div class="card-body demo-vertical-spacing demo-only-element">
 
-                    <div class="form-password-toggle">
-                      <label class="form-label" for="basic-default-password12">Tinggi Badan</label>
-                      <div class="input-group">
-                        <input
-                          type="text"
-                          class="form-control"
-                          id="basic-default-password12"
-                          placeholder="Masukkan Tinggi Badan Ibu"
-                          aria-describedby="basic-default-password2" />
-                        <span class="input-group-text" id="basic-addon13">cm</span>
+                      <?= $pesan ?>
+
+                      <div>
+                        <label class="form-label">Nama Ibu</label>
+                        <input type="text" name="nama_ibu" class="form-control" required>
                       </div>
-                    </div>
 
-                    <div class="form-password-toggle">
-                      <label class="form-label" for="basic-default-password12">LILA</label>
-                      <div class="input-group">
-                        <input
-                          type="text"
-                          class="form-control"
-                          id="basic-default-password12"
-                          placeholder="Masukkan Lingkar Lengan Atas"
-                          aria-describedby="basic-default-password2" />
-                        <span class="input-group-text" id="basic-addon13">cm</span>
+                      <div>
+                        <label class="form-label">Usia Ibu</label>
+                        <input type="number" name="usia" class="form-control" required>
                       </div>
-                    </div>
 
-                    <div class="form-password-toggle">
-                      <label class="form-label" for="basic-default-password12">Kadar Hemoglobin</label>
-                      <div class="input-group">
-                        <input
-                          type="text"
-                          class="form-control"
-                          id="basic-default-password12"
-                          placeholder="Masukkan Kadar Hemoglobin"
-                          aria-describedby="basic-default-password2" />
-                        <span class="input-group-text" id="basic-addon13">g/Dl</span>
+                      <div>
+                        <label class="form-label">Tinggi Badan</label>
+                        <div class="input-group">
+                          <input type="number" step="0.1" name="tinggi_badan" class="form-control" required>
+                          <span class="input-group-text">cm</span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div class="demo-inline-spacing text-end">
-                      <button type="submit" class="btn btn-primary">Prediksi</button>
-                      <button type="button" class="btn btn-secondary">Batal</button>
-                    </div>
+                      <div>
+                        <label class="form-label">Berat Badan</label>
+                        <div class="input-group">
+                          <input type="number" step="0.1" name="berat_badan" class="form-control" required>
+                          <span class="input-group-text">kg</span>
+                        </div>
+                      </div>
 
+                      <div>
+                        <label class="form-label">Lingkar Lengan Atas (LILA)</label>
+                        <div class="input-group">
+                          <input type="number" step="0.1" name="lingkar_lengan_atas" class="form-control" required>
+                          <span class="input-group-text">cm</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label class="form-label">Kadar Hemoglobin</label>
+                        <div class="input-group">
+                          <input type="number" step="0.1" name="kadar_hb" class="form-control" required>
+                          <span class="input-group-text">g/dL</span>
+                        </div>
+                      </div>
+
+                      <div class="demo-inline-spacing text-end">
+                        <button type="submit" class="btn btn-primary">Prediksi</button>
+                        <button type="reset" class="btn btn-secondary">Batal</button>
+                      </div>
+
+                    </div>
                   </div>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
           <!-- / Content -->

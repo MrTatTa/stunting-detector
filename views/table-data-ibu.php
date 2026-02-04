@@ -91,17 +91,16 @@ require_once "../config.php";
                       <th>Aksi</th>
                     </tr>
                   </thead>
+
                   <tbody class="table-border-bottom-0">
                     <?php
                     $no = 1;
                     $query = "
-    SELECT
-        ibu_hamil.*,
-        prediksi.hasil
-    FROM ibu_hamil
-    LEFT JOIN prediksi ON prediksi.ibu_id = ibu_hamil.id
-    ORDER BY ibu_hamil.created_at DESC
-";
+      SELECT ibu_hamil.*, prediksi.hasil
+      FROM ibu_hamil
+      LEFT JOIN prediksi ON prediksi.ibu_id = ibu_hamil.id
+      ORDER BY ibu_hamil.created_at DESC
+    ";
                     $result = mysqli_query($conn, $query);
 
                     if (mysqli_num_rows($result) > 0) :
@@ -109,12 +108,18 @@ require_once "../config.php";
                     ?>
                         <tr>
                           <td><?= $no++ ?></td>
-                          <td><?= htmlspecialchars($row['nama_ibu']) ?></td>
-                          <td><?= $row['usia'] ?> th</td>
-                          <td><?= $row['tinggi_badan'] ?></td>
-                          <td><?= $row['berat_badan'] ?></td>
-                          <td><?= $row['lingkar_lengan_atas'] ?></td>
-                          <td><?= $row['kadar_hb'] ?></td>
+
+                          <td><?= htmlspecialchars($row['nama_ibu'], ENT_QUOTES, 'UTF-8') ?></td>
+
+                          <td><?= (int)$row['usia'] ?> th</td>
+
+                          <td><?= (float)$row['tinggi_badan'] ?></td>
+
+                          <td><?= (float)$row['berat_badan'] ?></td>
+
+                          <td><?= (float)$row['lingkar_lengan_atas'] ?></td>
+
+                          <td><?= (float)$row['kadar_hb'] ?></td>
 
                           <td>
                             <?php if ($row['hasil'] == 'Berisiko Stunting') : ?>
@@ -132,23 +137,23 @@ require_once "../config.php";
                                 <i class="icon-base bx bx-dots-vertical-rounded"></i>
                               </button>
                               <div class="dropdown-menu">
-                                <a class="dropdown-item" href="detail.php?id=<?= $row['id'] ?>">
+                                <a class="dropdown-item" href="detail.php?id=<?= (int)$row['id'] ?>">
                                   <i class="icon-base bx bx-show me-1"></i> Detail
                                 </a>
-                                <a class="dropdown-item" href="edit.php?id=<?= $row['id'] ?>">
+                                <a class="dropdown-item" href="edit.php?id=<?= (int)$row['id'] ?>">
                                   <i class="icon-base bx bx-edit-alt me-1"></i> Edit
                                 </a>
-                                <a class="dropdown-item text-danger" href="hapus.php?id=<?= $row['id'] ?>" onclick="return confirm('Yakin hapus data?')">
+                                <a class="dropdown-item text-danger"
+                                  href="hapus.php?id=<?= (int)$row['id'] ?>"
+                                  onclick="return confirm('Yakin hapus data?')">
                                   <i class="icon-base bx bx-trash me-1"></i> Hapus
                                 </a>
                               </div>
                             </div>
                           </td>
                         </tr>
-                      <?php
-                      endwhile;
-                    else :
-                      ?>
+                      <?php endwhile; ?>
+                    <?php else : ?>
                       <tr>
                         <td colspan="9" class="text-center text-muted py-4">
                           Tidak ada data
