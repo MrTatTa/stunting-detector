@@ -95,6 +95,20 @@ $currentPage = basename($_SERVER['PHP_SELF']);
       </a>
     </li>
 
+    <li class="menu-item <?= $currentPage == 'table-data-ibu.php' ? 'active open' : '' ?>">
+      <a href="javascript:void(0);" class="menu-link menu-toggle">
+        <i class="menu-icon tf-icons bx bx-bar-chart"></i>
+        <div class="text-truncate">Tables</div>
+      </a>
+      <ul class="menu-sub">
+        <li class="menu-item <?= $currentPage == 'table-data-ibu.php' ? 'active' : '' ?>">
+          <a href="table-data-ibu.php" class="menu-link">
+            <div class="text-truncate">Data Ibu</div>
+          </a>
+        </li>
+      </ul>
+    </li>
+
     <li class="menu-header small text-uppercase">
       <span class="menu-header-text">Misc</span>
     </li>
