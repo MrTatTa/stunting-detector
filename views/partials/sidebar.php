@@ -1,3 +1,7 @@
+<?php
+$currentPage = basename($_SERVER['PHP_SELF']);
+?>
+
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
   <div class="app-brand demo">
     <a href="index.html" class="app-brand-link">
@@ -66,15 +70,15 @@
 
   <ul class="menu-inner py-1">
     <!-- Dashboards -->
-    <li class="menu-item active open">
+    <li class="menu-item <?= $currentPage == 'index.php' ? 'active open' : '' ?>">
       <a href="javascript:void(0);" class="menu-link menu-toggle">
         <i class="menu-icon tf-icons bx bx-home-smile"></i>
-        <div class="text-truncate" data-i18n="Dashboards">Dashboards</div>
+        <div class="text-truncate">Dashboards</div>
       </a>
       <ul class="menu-sub">
-        <li class="menu-item active">
+        <li class="menu-item <?= $currentPage == 'index.php' ? 'active' : '' ?>">
           <a href="index.php" class="menu-link">
-            <div class="text-truncate" data-i18n="Analytics">Analytics</div>
+            <div class="text-truncate">Analytics</div>
           </a>
         </li>
       </ul>
@@ -84,10 +88,10 @@
       <span class="menu-header-text">Apps &amp; Pages</span>
     </li>
     <!-- Pages -->
-    <li class="menu-item">
+    <li class="menu-item <?= $currentPage == 'prediksi.php' ? 'active' : '' ?>">
       <a href="prediksi.php" class="menu-link">
         <i class="menu-icon tf-icons bx bx-calculator"></i>
-        <div class="text-truncate" data-i18n="Basic">Prediksi</div>
+        <div class="text-truncate">Prediksi</div>
       </a>
     </li>
 

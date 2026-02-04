@@ -58,13 +58,13 @@
   <div class="layout-wrapper layout-content-navbar">
     <div class="layout-container">
       <!-- Menu -->
-      <?php include 'partials/sidebar.html'; ?>
+      <?php include 'partials/sidebar.php'; ?>
       <!-- / Menu -->
 
       <!-- Layout container -->
       <div class="layout-page">
         <!-- Navbar -->
-        <?php include 'partials/navbar.html'; ?>
+        <?php include 'partials/navbar.php'; ?>
         <!-- / Navbar -->
 
         <!-- Content wrapper -->
@@ -617,7 +617,7 @@
           <!-- / Content -->
 
           <!-- Footer -->
-          <?php include 'partials/footer.html'; ?>
+          <?php include 'partials/footer.php'; ?>
           <!-- / Footer -->
 
           <div class="content-backdrop fade"></div>
