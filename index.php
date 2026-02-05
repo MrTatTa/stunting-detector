@@ -1,7 +1,60 @@
 <?php
 require_once "config.php";
 
+$error = "";
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+  try {
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    if ($username === '' || $password === '') {
+      throw new Exception("Username dan password wajib diisi");
+    }
+
+    $stmt = mysqli_prepare(
+      $conn,
+      "SELECT id, username, password, role
+       FROM users
+       WHERE username = ?
+       LIMIT 1"
+    );
+
+    if (!$stmt) {
+      throw new Exception("Kesalahan sistem");
+    }
+
+    mysqli_stmt_bind_param($stmt, "s", $username);
+
+    if (!mysqli_stmt_execute($stmt)) {
+      throw new Exception("Kesalahan sistem");
+    }
+
+    $result = mysqli_stmt_get_result($stmt);
+    $user = mysqli_fetch_assoc($result);
+
+    if (!$user) {
+      throw new Exception("Username tidak ditemukan");
+    }
+
+    if (!password_verify($password, $user['password'])) {
+      throw new Exception("Password salah");
+    }
+
+    // LOGIN BERHASIL
+    $_SESSION['user_id']  = $user['id'];
+    $_SESSION['username'] = $user['username'];
+    $_SESSION['role']     = $user['role'];
+
+    header("Location: views/home.php");
+    exit;
+  } catch (Exception $e) {
+    $error = $e->getMessage();
+  }
+}
 ?>
+
 <!doctype html>
 
 <html
@@ -105,17 +158,25 @@ require_once "config.php";
           <h4 class="mb-1">Selamat Datang! 👋</h4>
           <p class="mb-6">Silahkan login untuk melanjutkan</p>
 
-          <form id="formAuthentication" class="mb-6" action="index.html">
+          <?php if ($error): ?>
+            <div class="alert alert-danger alert-dismissible" role="alert">
+              <?= htmlspecialchars($error) ?>
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          <?php endif; ?>
+          <form id="formAuthentication" class="mb-6" method="POST">
             <div class="mb-6">
-              <label for="email" class="form-label">Email or Username</label>
+              <label for="username" class="form-label">Username</label>
               <input
                 type="text"
                 class="form-control"
-                id="email"
-                name="email-username"
-                placeholder="Enter your email or username"
-                autofocus />
+                id="username"
+                name="username"
+                placeholder="Masukkan username"
+                autofocus
+                required />
             </div>
+
             <div class="mb-6 form-password-toggle">
               <label class="form-label" for="password">Password</label>
               <div class="input-group input-group-merge">
@@ -124,24 +185,18 @@ require_once "config.php";
                   id="password"
                   class="form-control"
                   name="password"
-                  placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;"
-                  aria-describedby="password" />
-                <span class="input-group-text cursor-pointer"><i class="icon-base bx bx-hide"></i></span>
+                  placeholder="••••••••••"
+                  required />
+                <span class="input-group-text cursor-pointer">
+                  <i class="icon-base bx bx-hide"></i>
+                </span>
               </div>
             </div>
-            <!-- <div class="mb-8">
-              <div class="d-flex justify-content-between">
-                <div class="form-check mb-0">
-                  <input class="form-check-input" type="checkbox" id="remember-me" />
-                  <label class="form-check-label" for="remember-me"> Remember Me </label>
-                </div>
-                <a href="auth-forgot-password-basic.html">
-                  <span>Forgot Password?</span>
-                </a>
-              </div>
-            </div> -->
+
             <div class="mb-6">
-              <a class="btn btn-primary d-grid w-100" href="views/home.php">Login</a>
+              <button type="submit" class="btn btn-primary d-grid w-100">
+                Login
+              </button>
             </div>
           </form>
         </div>

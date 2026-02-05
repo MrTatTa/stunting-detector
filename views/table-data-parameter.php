@@ -56,18 +56,139 @@ require_once "../config.php";
 </head>
 
 <body>
-  <div id="loaderOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:2000;justify-content:center;align-items:center;color:white;font-size:1.5rem;">
-    Sedang training...
+  <!-- Loader Overlay -->
+  <div id="loaderOverlay" class="loader-overlay">
+    <div class="loader-content">
+      <!-- Spinner animasi empat titik -->
+      <div class="spinner">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+      <p>Sedang training...</p>
+    </div>
   </div>
+
+  <style>
+    /* Overlay: default hidden */
+    .loader-overlay {
+      display: none;
+      /* default hidden */
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 2000;
+
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+
+      color: #fff;
+      font-family: sans-serif;
+    }
+
+    /* Loader content */
+    .loader-content {
+      text-align: center;
+    }
+
+    /* Spinner empat titik */
+    .spinner {
+      display: inline-block;
+      position: relative;
+      width: 80px;
+      height: 80px;
+    }
+
+    .spinner div {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: #4ade80;
+      /* hijau cerah */
+      border-radius: 50%;
+      animation: spinnerAnim 1.2s linear infinite;
+    }
+
+    .spinner div:nth-child(1) {
+      top: 8px;
+      left: 8px;
+      animation-delay: 0s;
+    }
+
+    .spinner div:nth-child(2) {
+      top: 8px;
+      right: 8px;
+      animation-delay: 0.3s;
+    }
+
+    .spinner div:nth-child(3) {
+      bottom: 8px;
+      right: 8px;
+      animation-delay: 0.6s;
+    }
+
+    .spinner div:nth-child(4) {
+      bottom: 8px;
+      left: 8px;
+      animation-delay: 0.9s;
+    }
+
+    /* Animasi titik membesar-mengecil */
+    @keyframes spinnerAnim {
+
+      0%,
+      100% {
+        transform: scale(0);
+      }
+
+      50% {
+        transform: scale(1);
+      }
+    }
+
+    /* Pulsating text */
+    .loader-content p {
+      font-size: 1.5rem;
+      margin-top: 20px;
+      animation: pulse 1.2s infinite;
+      color: #4ade80;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+  </style>
 
   <!-- Toast container -->
   <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999">
-    <div id="trainToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="d-flex">
-        <div class="toast-body" id="trainToastBody">
-          <!-- Pesan akan diisi via JS -->
-        </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    <div
+      id="trainToast"
+      class="toast border-0 shadow"
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true">
+      <div class="alert alert-success alert-dismissible mb-0 d-flex align-items-center">
+        <span id="trainToastBody">
+          Training model berhasil
+        </span>
+        <button
+          type="button"
+          class="btn-close ms-auto"
+          data-bs-dismiss="toast"
+          aria-label="Close"></button>
       </div>
     </div>
   </div>
@@ -99,36 +220,6 @@ require_once "../config.php";
                   </button>
                   <form action="train_model.php" method="post" style="display:inline;">
                     <button id="trainBtn" class="btn btn-success">Train Model</button>
-
-                    <script>
-                      document.getElementById('trainBtn').addEventListener('click', function(e) {
-                        e.preventDefault();
-
-                        // tampilkan loader
-                        document.getElementById('loader').style.display = 'block';
-
-                        fetch('train_model.php', {
-                            method: 'POST'
-                          })
-                          .then(res => res.json())
-                          .then(data => {
-                            document.getElementById('loader').style.display = 'none';
-                            document.getElementById('trainToastBody').textContent = data.message;
-
-                            var toastEl = document.getElementById('trainToast');
-                            var toast = new bootstrap.Toast(toastEl);
-                            toast.show();
-                          })
-                          .catch(err => {
-                            document.getElementById('loader').style.display = 'none';
-                            document.getElementById('trainToastBody').textContent = "Terjadi kesalahan.";
-
-                            var toastEl = document.getElementById('trainToast');
-                            var toast = new bootstrap.Toast(toastEl);
-                            toast.show();
-                          });
-                      });
-                    </script>
                   </form>
                 </div>
               </div>
@@ -235,45 +326,49 @@ require_once "../config.php";
       e.preventDefault();
 
       // tampilkan overlay loader
-      document.getElementById('loaderOverlay').style.display = 'flex';
+      const loader = document.getElementById('loaderOverlay');
+      loader.style.display = 'flex';
 
       fetch('train_model.php', {
           method: 'POST'
         })
         .then(res => res.json())
         .then(data => {
-          document.getElementById('loaderOverlay').style.display = 'none';
+          loader.style.display = 'none';
 
           const toastEl = document.getElementById('trainToast');
           const toastBody = document.getElementById('trainToastBody');
+          const alertBox = toastEl.querySelector('.alert');
+
+          // reset class alert
+          alertBox.classList.remove('alert-success', 'alert-danger');
 
           if (data.success) {
-            toastEl.classList.remove('bg-danger');
-            toastEl.classList.add('bg-success');
-            toastBody.textContent = "✅ Training model berhasil!";
+            alertBox.classList.add('alert-success');
+            toastBody.textContent = 'Training model berhasil';
           } else {
-            toastEl.classList.remove('bg-success');
-            toastEl.classList.add('bg-danger');
-            toastBody.textContent = "❌ " + data.message;
+            alertBox.classList.add('alert-danger');
+            toastBody.textContent = '' + (data.message ?? 'Training gagal');
           }
 
           const toast = new bootstrap.Toast(toastEl, {
-            delay: 5000
+            delay: 4000
           });
           toast.show();
         })
-        .catch(err => {
-          document.getElementById('loaderOverlay').style.display = 'none';
+        .catch(() => {
+          loader.style.display = 'none';
 
           const toastEl = document.getElementById('trainToast');
           const toastBody = document.getElementById('trainToastBody');
+          const alertBox = toastEl.querySelector('.alert');
 
-          toastEl.classList.remove('bg-success');
-          toastEl.classList.add('bg-danger');
-          toastBody.textContent = "❌ Terjadi kesalahan.";
+          alertBox.classList.remove('alert-success');
+          alertBox.classList.add('alert-danger');
+          toastBody.textContent = '❌ Terjadi kesalahan sistem';
 
           const toast = new bootstrap.Toast(toastEl, {
-            delay: 5000
+            delay: 4000
           });
           toast.show();
         });

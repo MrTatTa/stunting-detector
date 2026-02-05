@@ -3,15 +3,37 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 ?>
 
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
-  <div class="app-brand demo">
-    <a href="index.html" class="app-brand-link">
-      <span class="app-brand-logo demo">
-        <!-- SVG Logo -->
+  <div class="app-brand demo d-flex align-items-center justify-content-center position-relative"
+    style="padding: 20px 12px; height: 180px;">
+
+    <a href="home.php"
+      class="app-brand-link d-flex flex-column align-items-center justify-content-center text-center w-100">
+
+      <img
+        src="../assets/img/logo-no-bg.png"
+        alt="Logo STIKES Semarang"
+        style="
+        width: 100px;
+        max-width: 100%;
+        height: auto;
+        object-fit: contain;
+        margin-bottom: 10px;
+      " />
+
+      <span
+        class="app-brand-text menu-text fw-semibold text-uppercase"
+        style="
+        font-size: 1rem;
+        letter-spacing: 1px;
+        line-height: 1.3;
+      ">
+        STIKES SEMARANG
       </span>
-      <span class="app-brand-text demo menu-text fw-bold ms-2">Sneat</span>
     </a>
-    <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
-      <i class="bx bx-chevron-left d-block d-xl-none align-middle"></i>
+
+    <a href="javascript:void(0);"
+      class="layout-menu-toggle menu-link text-large position-absolute top-0 end-0 mt-2 me-2">
+      <i class="bx bx-chevron-left d-none d-xl-block"></i>
     </a>
   </div>
 
@@ -46,7 +68,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     </li>
 
     <!-- Tables -->
-    <li class="menu-item <?= in_array($currentPage, ['table-data-ibu.php','table-data-parameter.php']) ? 'active open' : '' ?>">
+    <li class="menu-item <?= in_array($currentPage, ['table-data-ibu.php', 'table-data-parameter.php']) ? 'active open' : '' ?>">
       <a href="javascript:void(0);" class="menu-link menu-toggle">
         <i class="menu-icon tf-icons bx bx-bar-chart"></i>
         <div class="text-truncate">Tables</div>
