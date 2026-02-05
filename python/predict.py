@@ -2,18 +2,7 @@ import sys
 import json
 import joblib
 import pandas as pd
-import mysql.connector
 import os
-
-# =========================
-# DATABASE CONFIG
-# =========================
-DB_CONFIG = {
-    "host": "localhost",
-    "user": "root",
-    "password": "",
-    "database": "prediksi_stunting"
-}
 
 # =========================
 # LOAD MODEL & PARAMETER
@@ -23,6 +12,7 @@ MODEL_PATH = os.path.join(BASE_DIR, "model", "rf_stunting.pkl")
 FEATURE_PATH = os.path.join(BASE_DIR, "model", "feature_importance.json")
 PARAM_PATH = os.path.join(BASE_DIR, "model", "active_params.json")
 
+# cek file model
 if not os.path.exists(MODEL_PATH):
     print(json.dumps({"error": "Model tidak ditemukan"}))
     sys.exit(1)
@@ -38,7 +28,7 @@ with open(PARAM_PATH) as f:
 # =========================
 # VALIDASI ARGUMEN
 # =========================
-if len(sys.argv) != len(feature_names):
+if len(sys.argv) != len(feature_names) + 1:  # +1 karena sys.argv[0] adalah script name
     print(json.dumps({"error": f"Parameter tidak lengkap. Format: {' '.join(feature_names)}"}))
     sys.exit(1)
 
@@ -55,37 +45,15 @@ X = pd.DataFrame([values], columns=feature_names)
 # =========================
 pred = model.predict(X)[0]
 proba = model.predict_proba(X)[0]
-hasil = "Berisiko Stunting" if pred == 1 else "Tidak Berisiko"
+hasil = "STUNTING" if pred == 1 else "NORMAL"
 probabilitas_stunting = float(proba[1])
 
 # =========================
-# SIMPAN KE DATABASE
+# HITUNG FAKTOR RISIKO SEDERHANA
 # =========================
-conn = mysql.connector.connect(**DB_CONFIG)
-cursor = conn.cursor()
-
-# Insert ibu_hamil (dummy jika perlu, harus sesuai ID)
-# Disarankan: ambil id dari web form input ibu_hamil
-ibu_id = 1  # ganti sesuai input nyata
-
-cursor.execute("""
-INSERT INTO prediksi (ibu_id, hasil, probabilitas)
-VALUES (%s, %s, %s)
-""", (ibu_id, hasil, probabilitas_stunting))
-prediksi_id = cursor.lastrowid
-
-# Simpan faktor risiko
-for param, kontribusi in faktor.items():
-    if param in feature_names:
-        nilai = X[param].iloc[0]
-        cursor.execute("""
-        INSERT INTO faktor_risiko (prediksi_id, parameter, nilai, kontribusi)
-        VALUES (%s, %s, %s, %s)
-        """, (prediksi_id, param, nilai, kontribusi))
-
-conn.commit()
-cursor.close()
-conn.close()
+faktor_risiko = {}
+for param in feature_names:
+    faktor_risiko[param] = round(faktor.get(param, 0), 4)
 
 # =========================
 # OUTPUT JSON
@@ -93,7 +61,7 @@ conn.close()
 output = {
     "hasil": hasil,
     "probabilitas": round(probabilitas_stunting, 4),
-    "faktor_risiko": faktor
+    "faktor": faktor_risiko
 }
 
 print(json.dumps(output))
