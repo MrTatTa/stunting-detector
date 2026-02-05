@@ -5,7 +5,7 @@
 $host = "localhost";
 $user = "root";
 $pass = "";
-$db   = "stunting_prediction";
+$db   = "prediksi_stunting";
 
 // ===============================
 // KONEKSI DATABASE

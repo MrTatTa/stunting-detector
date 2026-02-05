@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   mysqli_stmt_bind_param(
     $stmt,
-    "siddddi",
+    "sidddi",
     $nama_ibu,
     $usia,
     $tinggi,
