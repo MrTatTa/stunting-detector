@@ -56,6 +56,22 @@ require_once "../config.php";
 </head>
 
 <body>
+  <div id="loaderOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:2000;justify-content:center;align-items:center;color:white;font-size:1.5rem;">
+    Sedang training...
+  </div>
+
+  <!-- Toast container -->
+  <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999">
+    <div id="trainToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body" id="trainToastBody">
+          <!-- Pesan akan diisi via JS -->
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
   <!-- Layout wrapper -->
   <div class="layout-wrapper layout-content-navbar">
     <div class="layout-container">
@@ -82,7 +98,37 @@ require_once "../config.php";
                     Tambah Parameter
                   </button>
                   <form action="train_model.php" method="post" style="display:inline;">
-                    <button type="submit" class="btn btn-success">Train Model</button>
+                    <button id="trainBtn" class="btn btn-success">Train Model</button>
+
+                    <script>
+                      document.getElementById('trainBtn').addEventListener('click', function(e) {
+                        e.preventDefault();
+
+                        // tampilkan loader
+                        document.getElementById('loader').style.display = 'block';
+
+                        fetch('train_model.php', {
+                            method: 'POST'
+                          })
+                          .then(res => res.json())
+                          .then(data => {
+                            document.getElementById('loader').style.display = 'none';
+                            document.getElementById('trainToastBody').textContent = data.message;
+
+                            var toastEl = document.getElementById('trainToast');
+                            var toast = new bootstrap.Toast(toastEl);
+                            toast.show();
+                          })
+                          .catch(err => {
+                            document.getElementById('loader').style.display = 'none';
+                            document.getElementById('trainToastBody').textContent = "Terjadi kesalahan.";
+
+                            var toastEl = document.getElementById('trainToast');
+                            var toast = new bootstrap.Toast(toastEl);
+                            toast.show();
+                          });
+                      });
+                    </script>
                   </form>
                 </div>
               </div>
@@ -184,7 +230,55 @@ require_once "../config.php";
   <!-- Vendors JS -->
 
   <!-- Main JS -->
+  <script>
+    document.getElementById('trainBtn').addEventListener('click', function(e) {
+      e.preventDefault();
 
+      // tampilkan overlay loader
+      document.getElementById('loaderOverlay').style.display = 'flex';
+
+      fetch('train_model.php', {
+          method: 'POST'
+        })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('loaderOverlay').style.display = 'none';
+
+          const toastEl = document.getElementById('trainToast');
+          const toastBody = document.getElementById('trainToastBody');
+
+          if (data.success) {
+            toastEl.classList.remove('bg-danger');
+            toastEl.classList.add('bg-success');
+            toastBody.textContent = "✅ Training model berhasil!";
+          } else {
+            toastEl.classList.remove('bg-success');
+            toastEl.classList.add('bg-danger');
+            toastBody.textContent = "❌ " + data.message;
+          }
+
+          const toast = new bootstrap.Toast(toastEl, {
+            delay: 5000
+          });
+          toast.show();
+        })
+        .catch(err => {
+          document.getElementById('loaderOverlay').style.display = 'none';
+
+          const toastEl = document.getElementById('trainToast');
+          const toastBody = document.getElementById('trainToastBody');
+
+          toastEl.classList.remove('bg-success');
+          toastEl.classList.add('bg-danger');
+          toastBody.textContent = "❌ Terjadi kesalahan.";
+
+          const toast = new bootstrap.Toast(toastEl, {
+            delay: 5000
+          });
+          toast.show();
+        });
+    });
+  </script>
   <script src="../assets/js/main.js"></script>
 
   <!-- Page JS -->

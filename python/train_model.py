@@ -8,6 +8,7 @@ import json
 import mysql.connector
 import os
 import re
+import sys
 
 # =========================
 # CONFIG DATABASE
@@ -19,147 +20,141 @@ DB_CONFIG = {
     "database": "prediksi_stunting"
 }
 
-# =========================
-# CONNECT DB
-# =========================
-conn = mysql.connector.connect(**DB_CONFIG)
-cursor = conn.cursor(dictionary=True)
+try:
+    # =========================
+    # CONNECT DB
+    # =========================
+    conn = mysql.connector.connect(**DB_CONFIG)
+    cursor = conn.cursor(dictionary=True)
 
-# =========================
-# AMBIL PARAMETER AKTIF
-# =========================
-cursor.execute("SELECT nama_parameter FROM parameter WHERE status_aktif=1")
-params = cursor.fetchall()
-num_cols = [p['nama_parameter'] for p in params]
+    # =========================
+    # AMBIL PARAMETER AKTIF
+    # =========================
+    cursor.execute("SELECT nama_parameter FROM parameter WHERE status_aktif=1")
+    params = cursor.fetchall()
+    num_cols = [p['nama_parameter'] for p in params]
 
-if not num_cols:
-    raise ValueError("❌ Tidak ada parameter aktif di table parameter")
+    if not num_cols:
+        raise ValueError("Tidak ada parameter aktif di table parameter")
 
-print("Parameter aktif:", num_cols)
+    # =========================
+    # LOAD CSV
+    # =========================
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    csv_path = os.path.join(BASE_DIR, "dataset_stunting.csv")
 
-# =========================
-# LOAD CSV
-# =========================
-csv_path = "dataset_stunting.csv"
-csv_data = pd.read_csv(csv_path)
+    if not os.path.exists(csv_path):
+        raise FileNotFoundError(f"CSV dataset tidak ditemukan: {csv_path}")
 
-# Mapping nama CSV ke parameter aktif
-csv_to_param = {
-    "usia": "usia",
-    "tinggi_badan": "tinggi_badan",
-    "lila": "lingkar_lengan_atas",
-    "hb": "kadar_hb"
-}
+    csv_data = pd.read_csv(csv_path)
 
-csv_data = csv_data.rename(columns=csv_to_param)
+    # Mapping nama CSV ke parameter aktif
+    csv_to_param = {
+        "usia": "usia",
+        "tinggi_badan": "tinggi_badan",
+        "lila": "lingkar_lengan_atas",
+        "hb": "kadar_hb"
+    }
+    csv_data = csv_data.rename(columns=csv_to_param)
 
-# =========================
-# CLEAN CSV NUMERIC
-# =========================
-for col in num_cols:
-    if col in csv_data.columns:
-        # hapus teks cm, tahun, th, dsb
-        csv_data[col] = csv_data[col].astype(str).str.replace(r'[^\d\.]', '', regex=True)
-        csv_data[col] = pd.to_numeric(csv_data[col], errors='coerce')
+    # =========================
+    # CLEAN CSV NUMERIC
+    # =========================
+    for col in num_cols:
+        if col in csv_data.columns:
+            csv_data[col] = csv_data[col].astype(str).str.replace(r'[^\d\.]', '', regex=True)
+            csv_data[col] = pd.to_numeric(csv_data[col], errors='coerce')
 
-# =========================
-# MAP TARGET
-# =========================
-# stunting = 1, Baik = 0
-csv_data['stunting'] = csv_data['stunting'].apply(lambda x: 1 if str(x).strip().lower() == "stunting" else 0)
+    # =========================
+    # MAP TARGET CSV
+    # =========================
+    csv_data['stunting'] = csv_data['stunting'].apply(lambda x: 1 if str(x).strip().lower() == "stunting" else 0)
 
-# =========================
-# AMBIL DATA DB
-# =========================
-if set(num_cols).issubset({"usia","tinggi_badan","lingkar_lengan_atas","kadar_hb"}):
-    cols = ", ".join(num_cols + ["id"])
-else:
-    cols = ", ".join(num_cols + ["id"])
+    # =========================
+    # AMBIL DATA DB
+    # =========================
+    cursor.execute(f"SELECT id, {', '.join(num_cols)} FROM ibu_hamil")
+    db_data = pd.DataFrame(cursor.fetchall())
 
-cursor.execute(f"SELECT id, {', '.join(num_cols)} FROM ibu_hamil")
-db_data = pd.DataFrame(cursor.fetchall())
+    for col in num_cols:
+        if col in db_data.columns:
+            db_data[col] = pd.to_numeric(db_data[col], errors='coerce')
 
-# =========================
-# CLEAN DB NUMERIC
-# =========================
-for col in num_cols:
-    if col in db_data.columns:
-        db_data[col] = pd.to_numeric(db_data[col], errors='coerce')
+    # Buat target dari DB (aturan tinggi<50/lila<23/hb<11)
+    db_data['stunting'] = ((db_data.get('tinggi_badan', 999) < 50) |
+                           (db_data.get('lingkar_lengan_atas', 999) < 23) |
+                           (db_data.get('kadar_hb', 999) < 11)).astype(int)
 
-# =========================
-# TARGET DARI DB
-# =========================
-# Jika DB tidak punya kolom target, kita buat aturan:
-# stunting jika tinggi < 50 OR lila < 23 OR hb < 11
-db_data['stunting'] = ((db_data.get('tinggi_badan', 999) < 50) |
-                       (db_data.get('lingkar_lengan_atas', 999) < 23) |
-                       (db_data.get('kadar_hb', 999) < 11)).astype(int)
+    # =========================
+    # GABUNG CSV + DB
+    # =========================
+    data = pd.concat([csv_data[num_cols + ['stunting']], db_data[num_cols + ['stunting']]], ignore_index=True)
+    data = data.dropna(subset=num_cols + ['stunting'])
 
-# =========================
-# GABUNG CSV + DB
-# =========================
-data = pd.concat([csv_data[num_cols + ['stunting']], db_data[num_cols + ['stunting']]], ignore_index=True)
+    if data['stunting'].nunique() < 2:
+        raise ValueError("Target hanya 1 kelas. Tambahkan data agar ada kelas 0 dan 1.")
 
-# DROP NA
-data = data.dropna(subset=num_cols + ['stunting'])
+    X = data[num_cols]
+    y = data['stunting']
 
-print(f"Jumlah data siap training: {len(data)}")
-print("Distribusi target:")
-print(data['stunting'].value_counts())
+    # =========================
+    # K-FOLD CROSS VALIDATION
+    # =========================
+    kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    fold_accuracies = []
 
-if data['stunting'].nunique() < 2:
-    raise ValueError("❌ Target hanya 1 kelas. Tambahkan data agar ada kelas 0 dan 1.")
+    for train_idx, test_idx in kf.split(X, y):
+        X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
+        y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
-# =========================
-# X dan y
-# =========================
-X = data[num_cols]
-y = data['stunting']
+        model = RandomForestClassifier(n_estimators=200, random_state=42, class_weight="balanced")
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        acc = accuracy_score(y_test, y_pred)
+        fold_accuracies.append(acc)
 
-# =========================
-# K-FOLD CROSS VALIDATION
-# =========================
-kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-fold_accuracies = []
+    mean_acc = np.mean(fold_accuracies)
 
-for i, (train_idx, test_idx) in enumerate(kf.split(X, y), 1):
-    X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
-    y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+    # =========================
+    # TRAIN FINAL MODEL
+    # =========================
+    final_model = RandomForestClassifier(n_estimators=200, random_state=42, class_weight="balanced")
+    final_model.fit(X, y)
 
-    model = RandomForestClassifier(n_estimators=200, random_state=42, class_weight="balanced")
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    acc = accuracy_score(y_test, y_pred)
-    fold_accuracies.append(acc)
-    print(f"Fold {i} - Akurasi: {acc:.2f}")
+    # =========================
+    # FEATURE IMPORTANCE
+    # =========================
+    feature_importance = dict(zip(num_cols, final_model.feature_importances_))
 
-mean_acc = np.mean(fold_accuracies)
-print(f"⭐ Akurasi rata-rata 5-fold CV: {mean_acc:.2f}")
+    # =========================
+    # SIMPAN MODEL
+    # =========================
+    os.makedirs(os.path.join(BASE_DIR, "model"), exist_ok=True)
+    joblib.dump(final_model, os.path.join(BASE_DIR, "model", "rf_stunting.pkl"))
 
-# =========================
-# TRAIN FINAL MODEL
-# =========================
-final_model = RandomForestClassifier(n_estimators=200, random_state=42, class_weight="balanced")
-final_model.fit(X, y)
+    with open(os.path.join(BASE_DIR, "model", "feature_importance.json"), "w") as f:
+        json.dump(feature_importance, f, indent=4)
 
-# =========================
-# FEATURE IMPORTANCE
-# =========================
-feature_importance = dict(zip(num_cols, final_model.feature_importances_))
-print("\nFeature importances:")
-for col, imp in feature_importance.items():
-    print(f"{col} : {imp:.4f}")
+    with open(os.path.join(BASE_DIR, "model", "active_params.json"), "w") as f:
+        json.dump(num_cols, f, indent=4)
 
-# =========================
-# SIMPAN MODEL
-# =========================
-os.makedirs("model", exist_ok=True)
-joblib.dump(final_model, "model/rf_stunting.pkl")
+    # =========================
+    # OUTPUT JSON ONLY
+    # =========================
+    output = {
+        "success": True,
+        "message": "Model, feature importance, dan parameter aktif tersimpan.",
+        "akurasi_cv": round(mean_acc, 2),
+        "feature_importance": feature_importance
+    }
 
-with open("model/feature_importance.json", "w") as f:
-    json.dump(feature_importance, f, indent=4)
+    print(json.dumps(output))
 
-with open("model/active_params.json", "w") as f:
-    json.dump(num_cols, f, indent=4)
-
-print("\n✅ Model, feature importance, dan parameter aktif tersimpan.")
+except Exception as e:
+    # Jika ada error, kirim JSON juga
+    output = {
+        "success": False,
+        "message": f"Training gagal: {str(e)}"
+    }
+    print(json.dumps(output))
+    sys.exit(1)
