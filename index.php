@@ -151,12 +151,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <!-- <div class="authentication-inner"> -->
       <!-- Register -->
       <div class="card px-sm-6 px-0">
-        <div class="card-body">
+        <div class="card-body px-5 py-5">
           <!-- Logo -->
-
+          <div class="d-flex justify-content-center mb-4">
+            <img
+              src="assets/img/logo-no-bg.png"
+              alt="Logo STIKES Semarang"
+              style="
+        width: 120px;
+        max-width: 100%;
+        height: auto;
+        object-fit: contain;
+      " />
+          </div>
           <!-- /Logo -->
-          <h4 class="mb-1">Selamat Datang! 👋</h4>
-          <p class="mb-6">Silahkan login untuk melanjutkan</p>
+
+          <h4 class="mb-1 text-center">Selamat Datang!</h4>
+          <p class="mb-6 text-center">Silahkan login untuk melanjutkan</p>
 
           <?php if ($error): ?>
             <div class="alert alert-danger alert-dismissible" role="alert">
@@ -164,8 +175,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
           <?php endif; ?>
+
           <form id="formAuthentication" class="mb-6" method="POST">
-            <div class="mb-6">
+            <div class="mb-4">
               <label for="username" class="form-label">Username</label>
               <input
                 type="text"
@@ -177,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 required />
             </div>
 
-            <div class="mb-6 form-password-toggle">
+            <div class="mb-4 form-password-toggle">
               <label class="form-label" for="password">Password</label>
               <div class="input-group input-group-merge">
                 <input
@@ -193,8 +205,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               </div>
             </div>
 
-            <div class="mb-6">
-              <button type="submit" class="btn btn-primary d-grid w-100">
+            <div class="mt-4">
+              <button type="submit" class="btn btn-primary w-100">
                 Login
               </button>
             </div>
