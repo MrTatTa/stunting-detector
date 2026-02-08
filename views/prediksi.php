@@ -85,6 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $hasil_db = 'Tidak Berisiko';
   }
 
+
   if (json_last_error() !== JSON_ERROR_NONE) {
     die("Output Python bukan JSON valid:<pre>$output</pre>");
   }
@@ -126,8 +127,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt = mysqli_prepare(
       $conn,
       "INSERT INTO faktor_risiko
-       (prediksi_id, parameter, nilai, kontribusi)
-       VALUES (?, ?, ?, ?)"
+     (prediksi_id, parameter, nilai, kontribusi)
+     VALUES (?, ?, ?, ?)"
     );
 
     mysqli_stmt_bind_param(
@@ -143,153 +144,186 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 
   // ===============================
-  // PESAN VISUAL HASIL
+  // PESAN SUKSES
   // ===============================
-  $warna = $hasil_db == 'Berisiko Stunting' ? 'danger' : 'success';
-  $label = $hasil_db == 'Berisiko Stunting' ? 'BERISIKO STUNTING' : 'TIDAK BERISIKO';
-
-  $persen = round($result['probabilitas'] * 100, 2);
-
-  $pesan = "
-  <div class='card border-$warna mt-4 animate-result'>
-    <div class='card-body text-center'>
-      <h5 class='text-$warna mb-2'>$label</h5>
-      <h1 class='fw-bold'>$persen%</h1>
-      <p class='text-muted mb-0'>Probabilitas Prediksi</p>
-    </div>
-  </div>
-  ";
+  $pesan = "<div class='alert alert-success'>
+              Data berhasil disimpan dan diprediksi.
+            </div>";
 }
 ?>
 
 <!doctype html>
-<html lang="en" class="layout-menu-fixed layout-compact" data-assets-path="../assets/"
+
+<html
+  lang="en"
+  class="layout-menu-fixed layout-compact"
+  data-../assets-path="../assets/"
   data-template="vertical-menu-template-free">
 
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Prediksi Stunting</title>
+  <meta charset="utf-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
 
-  <link rel="icon" type="image/x-icon" href="../assets/img/favicon/favicon.ico">
-  <link rel="stylesheet" href="../assets/vendor/css/core.css">
-  <link rel="stylesheet" href="../assets/vendor/fonts/iconify-icons.css">
-  <link rel="stylesheet" href="../assets/css/demo.css">
-  <link rel="stylesheet" href="../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css">
+  <title>Demo: Dashboard - Analytics | Sneat - Bootstrap Dashboard FREE</title>
 
-  <style>
-    .animate-result {
-      animation: pop .5s ease;
-    }
+  <meta name="description" content="" />
 
-    @keyframes pop {
-      from {
-        transform: scale(.85);
-        opacity: 0;
-      }
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="../assets/img/favicon/favicon.ico" />
 
-      to {
-        transform: scale(1);
-        opacity: 1;
-      }
-    }
-  </style>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap"
+    rel="stylesheet" />
 
+  <link rel="stylesheet" href="../assets/vendor/fonts/iconify-icons.css" />
+
+  <!-- Core CSS -->
+  <!-- build:css ../assets/vendor/css/theme.css  -->
+
+  <link rel="stylesheet" href="../assets/vendor/css/core.css" />
+  <link rel="stylesheet" href="../assets/css/demo.css" />
+
+  <!-- Vendors CSS -->
+
+  <link rel="stylesheet" href="../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
+
+  <!-- endbuild -->
+
+  <link rel="stylesheet" href="../assets/vendor/libs/apex-charts/apex-charts.css" />
+
+  <!-- Page CSS -->
+
+  <!-- Helpers -->
   <script src="../assets/vendor/js/helpers.js"></script>
+  <!--! Template customizer & Theme config files MUST be included after core stylesheets and helpers.js in the <head> section -->
+
+  <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
+
   <script src="../assets/js/config.js"></script>
 </head>
 
 <body>
-
+  <!-- Layout wrapper -->
   <div class="layout-wrapper layout-content-navbar">
     <div class="layout-container">
-
+      <!-- Menu -->
       <?php include 'partials/sidebar.php'; ?>
+      <!-- / Menu -->
 
+      <!-- Layout container -->
       <div class="layout-page">
+        <!-- Navbar -->
         <?php include 'partials/navbar.php'; ?>
+        <!-- / Navbar -->
 
+        <!-- Content wrapper -->
         <div class="content-wrapper">
+          <!-- Content -->
           <div class="container-xxl flex-grow-1 container-p-y">
-
-            <div class="row justify-content-center">
-              <div class="col-lg-6 col-md-8">
-
-                <form method="POST">
+            <div class="row g-6 mb-6">
+              <!-- Basic -->
+              <form method="POST">
+                <div class="col-md-6">
                   <div class="card">
-                    <h5 class="card-header text-center">Prediksi Potensi Stunting</h5>
+                    <h5 class="card-header">Prediksi Potensi Stunting</h5>
 
-                    <div class="card-body">
+                    <div class="card-body demo-vertical-spacing demo-only-element">
 
                       <?= $pesan ?>
 
-                      <div class="mb-3">
+                      <div>
                         <label class="form-label">Nama Ibu</label>
-                        <input type="text" name="nama_ibu" class="form-control" required>
+                        <input type="text" name="nama_ibu" class="form-control" placeholder="Nama lengkap" required>
                       </div>
 
-                      <div class="mb-3">
+                      <div>
                         <label class="form-label">Usia Ibu</label>
-                        <input type="number" name="usia" class="form-control" required>
+                        <input type="number" name="usia" class="form-control" placeholder="Masukkan usia ibu" required>
                       </div>
 
-                      <div class="mb-3">
+                      <div>
                         <label class="form-label">Tinggi Badan</label>
                         <div class="input-group">
-                          <input type="number" step="0.1" name="tinggi_badan"
-                            class="form-control" required>
+                          <input type="number" step="0.1" name="tinggi_badan" class="form-control" placeholder="Masukkan tinggi badan" required>
                           <span class="input-group-text">cm</span>
                         </div>
                       </div>
 
-                      <div class="mb-3">
+                      <div>
                         <label class="form-label">Lingkar Lengan Atas (LILA)</label>
                         <div class="input-group">
-                          <input type="number" step="0.1" name="lingkar_lengan_atas"
-                            class="form-control" required>
+                          <input type="number" step="0.1" name="lingkar_lengan_atas" class="form-control" placeholder="Masukkan lingkar lengan atas" required>
                           <span class="input-group-text">cm</span>
                         </div>
                       </div>
 
-                      <div class="mb-3">
+                      <div>
                         <label class="form-label">Kadar Hemoglobin</label>
                         <div class="input-group">
-                          <input type="number" step="0.1" name="kadar_hb" class="form-control"
-                            required>
+                          <input type="number" step="0.1" name="kadar_hb" class="form-control" placeholder="Masukkan kadar hemoglobin" required>
                           <span class="input-group-text">g/dL</span>
                         </div>
                       </div>
 
-                      <div class="d-flex justify-content-end gap-2 mt-4">
-                        <button type="reset" class="btn btn-secondary">Reset</button>
+                      <div class="demo-inline-spacing text-end">
                         <button type="submit" class="btn btn-primary">Prediksi</button>
+                        <button type="reset" class="btn btn-secondary">Reset</button>
                       </div>
 
                     </div>
                   </div>
-                </form>
-
-              </div>
+                </div>
+              </form>
             </div>
-
           </div>
+          <!-- / Content -->
 
+          <!-- Footer -->
           <?php include 'partials/footer.php'; ?>
+          <!-- / Footer -->
+
+          <div class="content-backdrop fade"></div>
         </div>
+        <!-- Content wrapper -->
       </div>
+      <!-- / Layout page -->
     </div>
+
+    <!-- Overlay -->
+    <div class="layout-overlay layout-menu-toggle"></div>
   </div>
+  <!-- / Layout wrapper -->
+
+  <!-- Core JS -->
 
   <script src="../assets/vendor/libs/jquery/jquery.js"></script>
+
   <script src="../assets/vendor/libs/popper/popper.js"></script>
   <script src="../assets/vendor/js/bootstrap.js"></script>
+
   <script src="../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
+
   <script src="../assets/vendor/js/menu.js"></script>
+
+  <!-- endbuild -->
+
+  <!-- Vendors JS -->
+  <script src="../assets/vendor/libs/apex-charts/apexcharts.js"></script>
+
+  <!-- Main JS -->
+
   <script src="../assets/js/main.js"></script>
-  <div class="layout-overlay layout-menu-toggle"></div>
 
+  <!-- Page JS -->
+  <script src="../assets/js/dashboards-analytics.js"></script>
 
-
+  <!-- Place this tag before closing body tag for github widget button. -->
+  <script async defer src="https://buttons.github.io/buttons.js"></script>
 </body>
 
 </html>

@@ -1,72 +1,70 @@
-<nav class="layout-navbar container-xxl navbar-detached navbar navbar-expand-xl align-items-center bg-navbar-theme shadow-sm"
+<nav
+  class="layout-navbar container-xxl navbar-detached navbar navbar-expand-xl align-items-center bg-navbar-theme"
   id="layout-navbar">
-
-  <!-- Toggle Sidebar -->
-  <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 d-xl-none">
-    <a class="nav-item nav-link px-0" href="javascript:void(0)">
+  <div class="layout-menu-toggle navbar-nav align-items-xl-center me-4 me-xl-0 d-xl-none">
+    <a class="nav-item nav-link px-0 me-xl-6" href="javascript:void(0)">
       <i class="icon-base bx bx-menu icon-md"></i>
     </a>
   </div>
 
-  <!-- Brand / Page Title -->
-  <div class="navbar-nav me-auto d-flex align-items-center gap-2">
-    <span class="ms-2 text-success">
-      <i class="bx bx-heart"></i>
-    </span>
+  <div class="navbar-nav-right d-flex align-items-center justify-content-end" id="navbar-collapse">
+    <!-- Search -->
+    <div class="navbar-nav align-items-center me-auto">
+      <div class="nav-item d-flex align-items-center">
+        <span class="w-px-22 h-px-22"><i class="icon-base bx bx-search icon-md"></i></span>
+        <input
+          type="text"
+          class="form-control border-0 shadow-none ps-1 ps-sm-2 d-md-block d-none"
+          placeholder="Search..."
+          aria-label="Search..." />
+      </div>
+    </div>
+    <!-- /Search -->
 
-    <span class="fw-bold fs-5 text-primary">
-      Sistem Prediksi Risiko Stunting
-    </span>
-  </div>
-
-  <!-- Right Side -->
-  <ul class="navbar-nav flex-row align-items-center gap-3">
-
-    <!-- Status kecil (opsional keren) -->
-    <li class="d-none d-md-block">
-      <span class="badge bg-label-success px-3 py-2">
-        Sistem Aktif
-      </span>
-    </li>
-
-    <!-- User -->
-    <li class="nav-item navbar-dropdown dropdown-user dropdown">
-      <a class="nav-link dropdown-toggle hide-arrow p-0" href="#" data-bs-toggle="dropdown">
-        <div class="d-flex align-items-center gap-2">
-
+    <ul class="navbar-nav flex-row align-items-center ms-md-auto">
+      <!-- User -->
+      <li class="nav-item navbar-dropdown dropdown-user dropdown">
+        <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);" data-bs-toggle="dropdown">
           <div class="avatar avatar-online">
-            <img src="../assets/img/avatars/1.png" class="rounded-circle" />
+            <img src="../assets/img/avatars/1.png" alt class="w-px-40 h-auto rounded-circle" />
           </div>
-
-          <div class="d-none d-md-block text-start">
-            <div class="fw-semibold lh-1">Admin</div>
-            <small class="text-muted">Petugas Kesehatan</small>
-          </div>
-
-          <i class="icon-base bx bx-chevron-down text-muted"></i>
-        </div>
-      </a>
-
-      <ul class="dropdown-menu dropdown-menu-end shadow-sm mt-2">
-
-        <li class="px-3 py-2">
-          <div class="fw-semibold">Admin</div>
-          <small class="text-muted">Petugas Kesehatan</small>
-        </li>
-
-        <li>
-          <hr class="dropdown-divider">
-        </li>
-
-        <li>
-          <a class="dropdown-item text-danger" href="../logout.php">
-            <i class="icon-base bx bx-power-off me-2"></i> Logout
-          </a>
-        </li>
-
-      </ul>
-    </li>
-
-  </ul>
-
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li>
+            <a class="dropdown-item" href="#">
+              <div class="d-flex">
+                <div class="flex-shrink-0 me-3">
+                  <div class="avatar avatar-online">
+                    <img src="../assets/img/avatars/1.png" alt class="w-px-40 h-auto rounded-circle" />
+                  </div>
+                </div>
+                <div class="flex-grow-1">
+                  <h6 class="mb-0">John Doe</h6>
+                  <small class="text-body-secondary">Admin</small>
+                </div>
+              </div>
+            </a>
+          </li>
+          <li>
+            <div class="dropdown-divider my-1"></div>
+          </li>
+          <li>
+            <a class="dropdown-item" href="#">
+              <i class="icon-base bx bx-user icon-md me-3"></i><span>My Profile</span>
+            </a>
+          </li>
+          <li>
+            <div class="dropdown-divider my-1"></div>
+          </li>
+          <li>
+            <a class="dropdown-item" href="../logout.php">
+              <i class="icon-base bx bx-power-off icon-md me-3"></i>
+              <span>Log Out</span>
+            </a>
+          </li>
+        </ul>
+      </li>
+      <!--/ User -->
+    </ul>
+  </div>
 </nav>
