@@ -69,12 +69,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     name="viewport"
     content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
 
-  <title>Demo: Login Basic - Pages | Sneat - Bootstrap Dashboard FREE</title>
+  <title>Login | STIKES Semarang - Prediksi Bayi Stunting</title>
 
   <meta name="description" content="" />
 
   <!-- Favicon -->
-  <link rel="icon" type="image/x-icon" href="assets/img/favicon/favicon.ico" />
+  <link rel="icon" type="image/x-icon" href="assets/img/logo-no-bg.png" />
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />

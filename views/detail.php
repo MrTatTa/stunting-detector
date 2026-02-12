@@ -3,188 +3,194 @@ require_once "../config.php";
 
 $id = (int) ($_GET['id'] ?? 0);
 
+if ($id <= 0) {
+  echo "<div class='p-4 text-center text-danger'>ID tidak valid</div>";
+  exit;
+}
+
+/* =========================
+   AMBIL DATA IBU + PREDIKSI
+========================= */
 $query = "
-SELECT ibu_hamil.*, prediksi.hasil, prediksi.probabilitas
-FROM ibu_hamil
-LEFT JOIN prediksi ON prediksi.ibu_id = ibu_hamil.id
-WHERE ibu_hamil.id = $id
+SELECT ih.nama_ibu, pr.hasil, pr.probabilitas
+FROM ibu_hamil ih
+LEFT JOIN prediksi pr
+  ON pr.ibu_id = ih.id
+  AND pr.deleted_at IS NULL
+WHERE ih.id = $id
+AND ih.deleted_at IS NULL
 LIMIT 1
 ";
 
 $result = mysqli_query($conn, $query);
 $data = mysqli_fetch_assoc($result);
 
-if (!$data) die("Data tidak ditemukan");
+if (!$data) {
+  echo "<div class='p-4 text-center text-danger'>Data tidak ditemukan</div>";
+  exit;
+}
+
+/* =========================
+   AMBIL SEMUA PARAMETER
+========================= */
+$query_param = "
+SELECT p.nama_parameter, np.nilai
+FROM nilai_parameter np
+JOIN parameter p ON p.id = np.parameter_id
+WHERE np.ibu_id = $id
+ORDER BY p.id ASC
+";
+
+$result_param = mysqli_query($conn, $query_param);
+
+$parameters = [];
+while ($row = mysqli_fetch_assoc($result_param)) {
+  $parameters[$row['nama_parameter']] = $row['nilai'];
+}
+
+/* =========================
+   ANALISIS RISIKO
+========================= */
+$prob = isset($data['probabilitas']) ? $data['probabilitas'] * 100 : 0;
+
+if ($prob >= 80) $tingkat = "Tinggi";
+elseif ($prob >= 50) $tingkat = "Sedang";
+else $tingkat = "Rendah";
+
+$parameter_dominan = "Kondisi Umum";
+$edukasi = [];
+
+$usia = $parameters['usia'] ?? null;
+$tb   = $parameters['tinggi_badan'] ?? null;
+$lila = $parameters['lingkar_lengan_atas'] ?? null;
+$hb   = $parameters['kadar_hb'] ?? null;
+
+/* Rule edukasi lama tetap bisa dipakai */
+if ($tingkat != "Rendah") {
+
+  if ($hb !== null && $hb < 11) {
+    $parameter_dominan = "Kadar Hemoglobin (HB)";
+  } elseif ($lila !== null && $lila < 23.5) {
+    $parameter_dominan = "Lingkar Lengan Atas (LILA)";
+  } elseif ($tb !== null && $tb < 150) {
+    $parameter_dominan = "Tinggi Badan Ibu";
+  } elseif ($usia !== null && ($usia < 20 || $usia > 35)) {
+    $parameter_dominan = "Usia Ibu";
+  }
+
+  $edukasi = [
+    "Kesadaran diri ibu hamil",
+    "Rutin meminum MMS dan Tablet Tambah Darah",
+    "Pola makan bergizi seimbang",
+    "ANC minimal 6–8x selama kehamilan"
+  ];
+} else {
+
+  $parameter_dominan = "Kondisi Umum Baik";
+  $edukasi = [
+    "Pertahankan pola hidup sehat",
+    "Konsumsi gizi seimbang",
+    "ANC rutin",
+    "Pantau pertumbuhan janin"
+  ];
+}
+
+$warna = $tingkat == "Tinggi" ? "danger" : ($tingkat == "Sedang" ? "warning" : "success");
 ?>
 
-<!doctype html>
-<html lang="en" class="layout-menu-fixed layout-compact" data-assets-path="../assets/"
-  data-template="vertical-menu-template-free">
+<!-- =========================
+     MODAL DETAIL
+========================= -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content shadow">
 
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Detail Pemeriksaan Ibu</title>
+      <div class="modal-header">
+        <h5 class="modal-title">
+          Detail Pemeriksaan - <?= htmlspecialchars($data['nama_ibu']) ?>
+        </h5>
+      </div>
 
-  <link rel="icon" type="image/x-icon" href="../assets/img/favicon/favicon.ico">
-  <link rel="stylesheet" href="../assets/vendor/css/core.css">
-  <link rel="stylesheet" href="../assets/vendor/fonts/iconify-icons.css">
-  <link rel="stylesheet" href="../assets/css/demo.css">
-  <link rel="stylesheet" href="../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css">
+      <div class="modal-body">
 
-  <script src="../assets/vendor/js/helpers.js"></script>
-  <script src="../assets/js/config.js"></script>
-</head>
+        <!-- =========================
+             SEMUA PARAMETER DINAMIS
+        ========================= -->
+        <div class="row g-3 mb-4">
 
-<body>
-
-  <div class="layout-wrapper layout-content-navbar">
-    <div class="layout-container">
-
-      <?php include 'partials/sidebar.php'; ?>
-
-      <div class="layout-page">
-        <?php include 'partials/navbar.php'; ?>
-
-        <div class="content-wrapper">
-          <div class="container-xxl container-p-y">
-
-            <div class="card shadow-sm">
-              <div class="card-body">
-
-                <h4 class="mb-4">Detail Pemeriksaan Ibu</h4>
-
-                <!-- METRIC BOX -->
-                <div class="row g-3 mb-4">
-
-                  <div class="col-md-4">
-                    <div class="card h-100 text-center shadow-sm">
-                      <div class="card-body py-4">
-                        <small class="text-muted">Tinggi Badan</small>
-                        <h3 class="fw-bold mb-0"><?= $data['tinggi_badan'] ?> cm</h3>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="col-md-4">
-                    <div class="card h-100 text-center shadow-sm">
-                      <div class="card-body py-4">
-                        <small class="text-muted">LILA</small>
-                        <h3 class="fw-bold mb-0"><?= $data['lingkar_lengan_atas'] ?> cm</h3>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="col-md-4">
-                    <div class="card h-100 text-center shadow-sm">
-                      <div class="card-body py-4">
-                        <small class="text-muted">Hemoglobin</small>
-                        <h3 class="fw-bold mb-0"><?= $data['kadar_hb'] ?> g/dL</h3>
-                      </div>
-                    </div>
-                  </div>
-
+          <?php foreach ($parameters as $nama => $nilai): ?>
+            <div class="col-md-4">
+              <div class="card text-center border-0 bg-light">
+                <div class="card-body py-3">
+                  <small class="text-muted">
+                    <?= ucwords(str_replace('_', ' ', $nama)) ?>
+                  </small>
+                  <h4 class="fw-bold mb-0">
+                    <?= htmlspecialchars($nilai) ?>
+                  </h4>
                 </div>
-
-                <?php
-                $tb   = $data['tinggi_badan'];
-                $lila = $data['lingkar_lengan_atas'];
-                $hb   = $data['kadar_hb'];
-                $prob = $data['probabilitas'] * 100;
-
-                $saran = [];
-
-                /* Risiko dari AI */
-                if ($prob >= 80) $tingkat = "Tinggi";
-                elseif ($prob >= 50) $tingkat = "Sedang";
-                else $tingkat = "Rendah";
-
-                /* Analisis fisik */
-                if ($hb < 10) $saran[] = "Hb sangat rendah, tingkatkan zat besi dan konsultasi tenaga kesehatan.";
-                elseif ($hb < 11) $saran[] = "Hb sedikit rendah, konsumsi bayam, daging merah, telur, vitamin C.";
-
-                if ($lila < 22) $saran[] = "LILA sangat kecil, indikasi kekurangan gizi serius.";
-                elseif ($lila < 23.5) $saran[] = "LILA di bawah normal, perbanyak protein dan susu ibu hamil.";
-
-                if ($tb < 145) $saran[] = "Postur ibu sangat pendek, nutrisi harus dijaga ekstra.";
-                elseif ($tb < 150) $saran[] = "Tinggi ibu relatif pendek, jaga pola makan bergizi.";
-
-                if ($hb < 10 || $lila < 22 || $tb < 145) $tingkat = "Tinggi";
-
-                if (empty($saran)) {
-                  $saran[] = "Status gizi ibu sangat baik, pertahankan pola makan sehat.";
-                }
-
-                $motivasi_baik = [
-                  "🌿 Kondisi ibu sangat baik untuk tumbuh kembang bayi.",
-                  "💚 Pertahankan kebiasaan sehat ini.",
-                  "✨ Kehamilan berjalan optimal."
-                ];
-
-                $motivasi_resiko = [
-                  "💪 Perubahan kecil hari ini berdampak besar untuk anak.",
-                  "🌈 Tetap semangat memperbaiki nutrisi.",
-                  "🍼 Ibu hebat selalu berusaha terbaik."
-                ];
-
-                $motivasi = $tingkat == "Rendah"
-                  ? $motivasi_baik[array_rand($motivasi_baik)]
-                  : $motivasi_resiko[array_rand($motivasi_resiko)];
-
-                $warna = $tingkat == "Tinggi" ? "danger" : ($tingkat == "Sedang" ? "warning" : "success");
-                ?>
-
-                <!-- HASIL -->
-                <div class="mt-3">
-
-                  <h5 class="mb-2">Hasil Prediksi</h5>
-
-                  <div class="d-flex align-items-center gap-3 mb-2 flex-wrap">
-
-                    <?php if ($data['hasil'] == 'Berisiko Stunting'): ?>
-                      <span class="badge bg-label-danger px-3 py-2 fs-6">Berisiko Stunting</span>
-                    <?php else: ?>
-                      <span class="badge bg-label-success px-3 py-2 fs-6">Tidak Berisiko</span>
-                    <?php endif; ?>
-
-                    <span class="text-muted">
-                      Probabilitas: <b><?= round($prob, 2) ?>%</b>
-                    </span>
-
-                  </div>
-
-                  <div class="alert alert-<?= $warna ?> mb-0">
-
-                    <h6 class="mb-2">📊 Tingkat Risiko: <b><?= $tingkat ?></b></h6>
-
-                    <ul class="ps-3 mb-2">
-                      <?php foreach ($saran as $item): ?>
-                        <li><?= $item ?></li>
-                      <?php endforeach; ?>
-                    </ul>
-
-                    <div class="fw-semibold"><?= $motivasi ?></div>
-
-                  </div>
-
-                </div>
-
               </div>
             </div>
+          <?php endforeach; ?>
 
-          </div>
-          <?php include 'partials/footer.php'; ?>
         </div>
+
+        <!-- =========================
+             HASIL PREDIKSI
+        ========================= -->
+        <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+
+          <?php if ($data['hasil'] == 'Berisiko Stunting'): ?>
+            <span class="badge bg-label-danger px-3 py-2">Berisiko Stunting</span>
+          <?php elseif ($data['hasil'] == 'Tidak Berisiko'): ?>
+            <span class="badge bg-label-success px-3 py-2">Tidak Berisiko</span>
+          <?php else: ?>
+            <span class="badge bg-label-secondary px-3 py-2">Belum Diprediksi</span>
+          <?php endif; ?>
+
+          <span class="text-muted">
+            Probabilitas: <strong><?= round($prob, 2) ?>%</strong>
+          </span>
+        </div>
+
+        <div class="progress mb-3" style="height: 8px;">
+          <div class="progress-bar bg-<?= $warna ?>"
+            style="width: <?= round($prob, 2) ?>%">
+          </div>
+        </div>
+
+        <!-- =========================
+             ANALISIS & EDUKASI
+        ========================= -->
+        <div class="alert alert-<?= $warna ?> mb-0">
+
+          <strong>Tingkat Risiko: <?= $tingkat ?></strong><br>
+          <small class="text-muted">
+            Parameter Dominan: <b><?= $parameter_dominan ?></b>
+          </small>
+
+          <hr>
+
+          <strong>Edukasi:</strong>
+          <ul class="ps-3 mt-2 mb-0">
+            <?php foreach ($edukasi as $item): ?>
+              <li><?= $item ?></li>
+            <?php endforeach; ?>
+          </ul>
+
+        </div>
+
       </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+
     </div>
+  </div>
+</div>
 
-    <script src="../assets/vendor/libs/jquery/jquery.js"></script>
-    <script src="../assets/vendor/libs/popper/popper.js"></script>
-    <script src="../assets/vendor/js/bootstrap.js"></script>
-    <script src="../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
-    <script src="../assets/vendor/js/menu.js"></script>
-    <script src="../assets/js/main.js"></script>
-
-</body>
-
-</html>
+<script>
+  var modal = new bootstrap.Modal(document.getElementById('detailModal'));
+  modal.show();
+</script>

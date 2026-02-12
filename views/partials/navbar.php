@@ -8,14 +8,11 @@
     </a>
   </div>
 
-  <!-- Brand / Page Title -->
   <div class="navbar-nav me-auto d-flex align-items-center gap-2">
     <span class="ms-2 text-success">
-      <i class="bx bx-heart"></i>
     </span>
 
     <span class="fw-bold fs-5 text-primary">
-      Sistem Prediksi Risiko Stunting
     </span>
   </div>
 
@@ -23,11 +20,11 @@
   <ul class="navbar-nav flex-row align-items-center gap-3">
 
     <!-- Status kecil (opsional keren) -->
-    <li class="d-none d-md-block">
+    <!-- <li class="d-none d-md-block">
       <span class="badge bg-label-success px-3 py-2">
         Sistem Aktif
       </span>
-    </li>
+    </li> -->
 
     <!-- User -->
     <li class="nav-item navbar-dropdown dropdown-user dropdown">

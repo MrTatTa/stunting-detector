@@ -105,7 +105,36 @@ require_once "../config.php";
                   </div>
                 </div>
 
+                <?php
+                $no = 1;
 
+                $query = "
+SELECT
+  ih.id,
+  ih.nama_ibu,
+  pr.hasil,
+
+  -- Ambil nilai usia dari nilai_parameter
+  (
+    SELECT np.nilai
+    FROM nilai_parameter np
+    JOIN parameter p ON p.id = np.parameter_id
+    WHERE np.ibu_id = ih.id
+    AND p.nama_parameter = 'usia'
+    LIMIT 1
+  ) AS usia
+
+FROM ibu_hamil ih
+LEFT JOIN prediksi pr
+  ON pr.ibu_id = ih.id
+  AND pr.deleted_at IS NULL
+
+WHERE ih.deleted_at IS NULL
+ORDER BY ih.created_at DESC
+";
+
+                $result = mysqli_query($conn, $query);
+                ?>
                 <table class="table table-hover">
                   <thead>
                     <tr>
@@ -115,27 +144,22 @@ require_once "../config.php";
                       <th>Hasil Prediksi</th>
                       <th>Aksi</th>
                     </tr>
-
                   </thead>
 
                   <tbody class="table-border-bottom-0">
-                    <?php
-                    $no = 1;
-                    $query = "
-      SELECT ibu_hamil.*, prediksi.hasil
-      FROM ibu_hamil
-      LEFT JOIN prediksi ON prediksi.ibu_id = ibu_hamil.id
-      ORDER BY ibu_hamil.created_at DESC
-    ";
-                    $result = mysqli_query($conn, $query);
 
-                    if (mysqli_num_rows($result) > 0) :
-                      while ($row = mysqli_fetch_assoc($result)) :
-                    ?>
+                    <?php if (mysqli_num_rows($result) > 0): ?>
+                      <?php while ($row = mysqli_fetch_assoc($result)): ?>
                         <tr>
                           <td><?= $no++ ?></td>
+
                           <td><?= htmlspecialchars($row['nama_ibu']) ?></td>
-                          <td><?= (int)$row['usia'] ?> th</td>
+
+                          <td>
+                            <?= $row['usia'] !== null
+                              ? (int)$row['usia'] . " th"
+                              : "-" ?>
+                          </td>
 
                           <td>
                             <?php if ($row['hasil'] == 'Berisiko Stunting'): ?>
@@ -146,21 +170,26 @@ require_once "../config.php";
                               <span class="badge bg-label-secondary">Belum Diprediksi</span>
                             <?php endif; ?>
                           </td>
+
                           <td>
                             <div class="dropdown">
-                              <button type="button" class="btn p-0 dropdown-toggle hide-arrow"
+                              <button type="button"
+                                class="btn p-0 dropdown-toggle hide-arrow"
                                 data-bs-toggle="dropdown">
                                 <i class="icon-base bx bx-dots-vertical-rounded"></i>
                               </button>
+
                               <div class="dropdown-menu">
+
                                 <a class="dropdown-item"
-                                  href="detail.php?id=<?= (int)$row['id'] ?>">
+                                  href="javascript:void(0);"
+                                  onclick="showDetail(<?= (int)$row['id'] ?>)">
                                   <i class="icon-base bx bx-show me-1"></i> Detail
                                 </a>
 
                                 <a class="dropdown-item text-danger"
-                                  href="hapus.php?id=<?= (int)$row['id'] ?>"
-                                  onclick="return confirm('Yakin hapus data?')">
+                                  href="javascript:void(0);"
+                                  onclick="confirmDelete(<?= (int)$row['id'] ?>)">
                                   <i class="icon-base bx bx-trash me-1"></i> Hapus
                                 </a>
 
@@ -169,13 +198,15 @@ require_once "../config.php";
                           </td>
                         </tr>
                       <?php endwhile; ?>
-                    <?php else : ?>
+
+                    <?php else: ?>
                       <tr>
-                        <td colspan="9" class="text-center text-muted py-4">
+                        <td colspan="5" class="text-center text-muted py-4">
                           Tidak ada data
                         </td>
                       </tr>
                     <?php endif; ?>
+
                   </tbody>
                 </table>
               </div>
@@ -222,6 +253,68 @@ require_once "../config.php";
 
   <!-- Place this tag before closing body tag for github widget button. -->
   <script async defer src="https://buttons.github.io/buttons.js"></script>
+
+  <div id="modalContainer"></div>
+  <div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+
+        <div class="modal-header">
+          <h5 class="modal-title text-danger">Konfirmasi Hapus</h5>
+        </div>
+
+        <div class="modal-body">
+          Apakah Anda yakin ingin menghapus data ini?
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <a id="deleteBtn" href="#" class="btn btn-danger">Ya, Hapus</a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showDetail(id) {
+
+      // Hapus modal lama jika ada
+      document.getElementById('modalContainer').innerHTML = "";
+
+      fetch('detail.php?id=' + id)
+        .then(response => response.text())
+        .then(html => {
+
+          document.getElementById('modalContainer').innerHTML = html;
+
+          // Tunggu sebentar agar DOM siap
+          setTimeout(() => {
+            const modalEl = document.getElementById('detailModal');
+            if (modalEl) {
+              const modal = new bootstrap.Modal(modalEl);
+              modal.show();
+            }
+          }, 100);
+
+        })
+        .catch(error => {
+          alert('Gagal memuat detail');
+          console.error(error);
+        });
+    }
+  </script>
+  <script>
+    function confirmDelete(id) {
+
+      const deleteBtn = document.getElementById("deleteBtn");
+      deleteBtn.href = "hapus.php?id=" + id;
+
+      const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+      modal.show();
+    }
+  </script>
+
 
   <!-- Smooth Toast Popup -->
   <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999">

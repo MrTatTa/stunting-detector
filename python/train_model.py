@@ -7,7 +7,6 @@ import joblib
 import json
 import mysql.connector
 import os
-import re
 import sys
 
 # =========================
@@ -30,12 +29,17 @@ try:
     # =========================
     # AMBIL PARAMETER AKTIF
     # =========================
-    cursor.execute("SELECT nama_parameter FROM parameter WHERE status_aktif=1")
+    cursor.execute("""
+        SELECT nama_parameter
+        FROM parameter
+        WHERE status_aktif=1
+        ORDER BY id ASC
+    """)
     params = cursor.fetchall()
     num_cols = [p['nama_parameter'] for p in params]
 
     if not num_cols:
-        raise ValueError("Tidak ada parameter aktif di table parameter")
+        raise ValueError("Tidak ada parameter aktif.")
 
     # =========================
     # LOAD CSV
@@ -48,57 +52,111 @@ try:
 
     csv_data = pd.read_csv(csv_path)
 
-    # Mapping nama CSV ke parameter aktif
+    # Rename kolom jika berbeda
     csv_to_param = {
-        "usia": "usia",
-        "tinggi_badan": "tinggi_badan",
         "lila": "lingkar_lengan_atas",
         "hb": "kadar_hb"
     }
     csv_data = csv_data.rename(columns=csv_to_param)
 
-    # =========================
-    # CLEAN CSV NUMERIC
-    # =========================
+    # Pastikan semua parameter aktif ada di CSV
     for col in num_cols:
-        if col in csv_data.columns:
-            csv_data[col] = csv_data[col].astype(str).str.replace(r'[^\d\.]', '', regex=True)
-            csv_data[col] = pd.to_numeric(csv_data[col], errors='coerce')
+        if col not in csv_data.columns:
+            csv_data[col] = np.nan
 
-    # =========================
-    # MAP TARGET CSV
-    # =========================
-    csv_data['stunting'] = csv_data['stunting'].apply(lambda x: 1 if str(x).strip().lower() == "stunting" else 0)
-
-    # =========================
-    # AMBIL DATA DB
-    # =========================
-    cursor.execute(f"SELECT id, {', '.join(num_cols)} FROM ibu_hamil")
-    db_data = pd.DataFrame(cursor.fetchall())
-
+    # Clean numeric
     for col in num_cols:
-        if col in db_data.columns:
-            db_data[col] = pd.to_numeric(db_data[col], errors='coerce')
+        csv_data[col] = (
+            csv_data[col]
+            .astype(str)
+            .str.replace(r'[^\d\.]', '', regex=True)
+        )
+        csv_data[col] = pd.to_numeric(csv_data[col], errors='coerce')
 
-    # Buat target dari DB (aturan tinggi<50/lila<23/hb<11)
-    db_data['stunting'] = ((db_data.get('tinggi_badan', 999) < 50) |
-                           (db_data.get('lingkar_lengan_atas', 999) < 23) |
-                           (db_data.get('kadar_hb', 999) < 11)).astype(int)
+    # Target
+    if 'stunting' not in csv_data.columns:
+        raise ValueError("Kolom 'stunting' tidak ditemukan di CSV.")
+
+    csv_data['stunting'] = csv_data['stunting'].apply(
+        lambda x: 1 if str(x).strip().lower() == "stunting" else 0
+    )
+
+    csv_data = csv_data[num_cols + ['stunting']]
+
+    # =========================
+    # AMBIL DATA DB DINAMIS
+    # =========================
+    query = """
+    SELECT
+        ih.id AS ibu_id,
+        p.nama_parameter,
+        np.nilai
+    FROM ibu_hamil ih
+    JOIN nilai_parameter np ON np.ibu_id = ih.id
+    JOIN parameter p ON p.id = np.parameter_id
+    WHERE ih.deleted_at IS NULL
+    AND p.status_aktif = 1
+    """
+
+    cursor.execute(query)
+    rows = cursor.fetchall()
+
+    if rows:
+        df_long = pd.DataFrame(rows)
+
+        db_data = df_long.pivot(
+            index='ibu_id',
+            columns='nama_parameter',
+            values='nilai'
+        ).reset_index()
+
+        for col in num_cols:
+            if col not in db_data.columns:
+                db_data[col] = np.nan
+
+        db_data = db_data[['ibu_id'] + num_cols]
+
+        # Target fallback rule-based
+        db_data['stunting'] = (
+            (db_data.get('tinggi_badan', 999) < 150) |
+            (db_data.get('lingkar_lengan_atas', 999) < 23) |
+            (db_data.get('kadar_hb', 999) < 11)
+        ).astype(int)
+
+        db_data = db_data[num_cols + ['stunting']]
+    else:
+        db_data = pd.DataFrame(columns=num_cols + ['stunting'])
 
     # =========================
     # GABUNG CSV + DB
     # =========================
-    data = pd.concat([csv_data[num_cols + ['stunting']], db_data[num_cols + ['stunting']]], ignore_index=True)
-    data = data.dropna(subset=num_cols + ['stunting'])
+    data = pd.concat([csv_data, db_data], ignore_index=True)
+
+    if data.empty:
+        raise ValueError("Dataset kosong.")
+
+    # =========================
+    # IMPUTASI MEDIAN (ANTI DEADLOCK)
+    # =========================
+    imputer_values = {}
+
+    for col in num_cols:
+        if data[col].isnull().all():
+            median_val = 0
+        else:
+            median_val = data[col].median()
+
+        data[col] = data[col].fillna(median_val)
+        imputer_values[col] = float(median_val)
 
     if data['stunting'].nunique() < 2:
-        raise ValueError("Target hanya 1 kelas. Tambahkan data agar ada kelas 0 dan 1.")
+        raise ValueError("Target hanya 1 kelas. Tambahkan data agar ada 0 dan 1.")
 
     X = data[num_cols]
     y = data['stunting']
 
     # =========================
-    # K-FOLD CROSS VALIDATION
+    # CROSS VALIDATION
     # =========================
     kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     fold_accuracies = []
@@ -107,7 +165,12 @@ try:
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
-        model = RandomForestClassifier(n_estimators=200, random_state=42, class_weight="balanced")
+        model = RandomForestClassifier(
+            n_estimators=200,
+            random_state=42,
+            class_weight="balanced"
+        )
+
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
         acc = accuracy_score(y_test, y_pred)
@@ -118,7 +181,12 @@ try:
     # =========================
     # TRAIN FINAL MODEL
     # =========================
-    final_model = RandomForestClassifier(n_estimators=200, random_state=42, class_weight="balanced")
+    final_model = RandomForestClassifier(
+        n_estimators=200,
+        random_state=42,
+        class_weight="balanced"
+    )
+
     final_model.fit(X, y)
 
     # =========================
@@ -127,31 +195,36 @@ try:
     feature_importance = dict(zip(num_cols, final_model.feature_importances_))
 
     # =========================
-    # SIMPAN MODEL
+    # SIMPAN MODEL & METADATA
     # =========================
-    os.makedirs(os.path.join(BASE_DIR, "model"), exist_ok=True)
-    joblib.dump(final_model, os.path.join(BASE_DIR, "model", "rf_stunting.pkl"))
+    model_dir = os.path.join(BASE_DIR, "model")
+    os.makedirs(model_dir, exist_ok=True)
 
-    with open(os.path.join(BASE_DIR, "model", "feature_importance.json"), "w") as f:
+    joblib.dump(final_model, os.path.join(model_dir, "rf_stunting.pkl"))
+
+    with open(os.path.join(model_dir, "feature_importance.json"), "w") as f:
         json.dump(feature_importance, f, indent=4)
 
-    with open(os.path.join(BASE_DIR, "model", "active_params.json"), "w") as f:
+    with open(os.path.join(model_dir, "active_params.json"), "w") as f:
         json.dump(num_cols, f, indent=4)
 
+    with open(os.path.join(model_dir, "imputer.json"), "w") as f:
+        json.dump(imputer_values, f, indent=4)
+
     # =========================
-    # OUTPUT JSON ONLY
+    # OUTPUT JSON
     # =========================
     output = {
         "success": True,
-        "message": "Model, feature importance, dan parameter aktif tersimpan.",
+        "message": "Training berhasil.",
         "akurasi_cv": round(mean_acc, 2),
-        "feature_importance": feature_importance
+        "feature_importance": feature_importance,
+        "jumlah_data": len(data)
     }
 
     print(json.dumps(output))
 
 except Exception as e:
-    # Jika ada error, kirim JSON juga
     output = {
         "success": False,
         "message": f"Training gagal: {str(e)}"

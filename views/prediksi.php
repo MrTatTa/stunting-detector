@@ -3,163 +3,235 @@ require_once "../config.php";
 
 $pesan = "";
 
-// ===============================
-// PROSES FORM
-// ===============================
+/* ======================================================
+   PROSES FORM
+====================================================== */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-  // ===============================
-  // AMBIL DATA FORM
-  // ===============================
   $nama_ibu = htmlspecialchars(trim($_POST['nama_ibu']));
-  $usia     = (int) $_POST['usia'];
-  $tinggi   = (float) $_POST['tinggi_badan'];
-  $lila     = (float) $_POST['lingkar_lengan_atas'];
-  $hb       = (float) $_POST['kadar_hb'];
-
-  // ===============================
-  // VALIDASI
-  // ===============================
-  if ($usia <= 0 || $tinggi <= 0 || $lila <= 0 || $hb <= 0) {
-    $pesan = "<div class='alert alert-danger'>Input tidak valid.</div>";
-    return;
-  }
-
-  // ===============================
-  // SIMPAN DATA IBU HAMIL
-  // ===============================
-  $stmt = mysqli_prepare(
-    $conn,
-    "INSERT INTO ibu_hamil
-     (nama_ibu, usia, tinggi_badan, lingkar_lengan_atas, kadar_hb, created_by)
-     VALUES (?, ?, ?, ?, ?, ?)"
-  );
-
   $created_by = $_SESSION['user_id'] ?? null;
 
-  mysqli_stmt_bind_param(
-    $stmt,
-    "sidddi",
-    $nama_ibu,
-    $usia,
-    $tinggi,
-    $lila,
-    $hb,
-    $created_by
-  );
+  if (empty($nama_ibu)) {
+    $pesan = "<div class='alert alert-danger'>Nama ibu wajib diisi.</div>";
+  } else {
 
-  if (!mysqli_stmt_execute($stmt)) {
-    $pesan = "<div class='alert alert-danger'>Gagal menyimpan data ibu.</div>";
-    return;
-  }
-
-  // ===============================
-  // AMBIL ID IBU
-  // ===============================
-  $ibu_id = mysqli_insert_id($conn);
-
-  // ===============================
-  // PANGGIL PYTHON
-  // ===============================
-  $python = "../python/python.exe";
-  $script = "../python/predict.py";
-
-  // HANYA 4 PARAMETER SESUAI MODEL
-  $command = "\"$python\" \"$script\" $usia $tinggi $lila $hb 2>&1";
-  $output = shell_exec($command);
-
-  if ($output === null || trim($output) === "") {
-    die("Python tidak mengembalikan output.<pre>$command</pre>");
-  }
-
-  $result = json_decode($output, true);
-
-  // ===============================
-  // MAPPING HASIL KE ENUM DATABASE
-  // ===============================
-  $hasil_db = null;
-
-  if ($result['hasil'] === 'STUNTING') {
-    $hasil_db = 'Berisiko Stunting';
-  } elseif ($result['hasil'] === 'NORMAL') {
-    $hasil_db = 'Tidak Berisiko';
-  }
-
-  if (json_last_error() !== JSON_ERROR_NONE) {
-    die("Output Python bukan JSON valid:<pre>$output</pre>");
-  }
-
-  // ===============================
-  // SIMPAN HASIL PREDIKSI
-  // ===============================
-  $stmt = mysqli_prepare(
-    $conn,
-    "INSERT INTO prediksi (ibu_id, hasil, probabilitas)
-     VALUES (?, ?, ?)"
-  );
-
-  mysqli_stmt_bind_param(
-    $stmt,
-    "isd",
-    $ibu_id,
-    $hasil_db,
-    $result['probabilitas']
-  );
-
-  mysqli_stmt_execute($stmt);
-  $prediksi_id = mysqli_insert_id($conn);
-
-  // ===============================
-  // SIMPAN FAKTOR RISIKO
-  // ===============================
-  $map = [
-    'usia' => $usia,
-    'tinggi_badan' => $tinggi,
-    'lila' => $lila,
-    'hb' => $hb
-  ];
-
-  foreach ($result['faktor'] as $param => $kontribusi) {
-
-    $nilai = $map[$param] ?? 0;
-
-    $stmt = mysqli_prepare(
+    /* ================================
+       AMBIL PARAMETER AKTIF
+    ================================= */
+    $param_query = mysqli_query(
       $conn,
-      "INSERT INTO faktor_risiko
-       (prediksi_id, parameter, nilai, kontribusi)
-       VALUES (?, ?, ?, ?)"
+      "SELECT * FROM parameter
+       WHERE status_aktif = 1
+       ORDER BY id ASC"
     );
 
-    mysqli_stmt_bind_param(
-      $stmt,
-      "isdd",
-      $prediksi_id,
-      $param,
-      $nilai,
-      $kontribusi
-    );
+    $data_input = [];
+    $nilai_for_python = [];
 
-    mysqli_stmt_execute($stmt);
+    while ($param = mysqli_fetch_assoc($param_query)) {
+
+      $nama_param = $param['nama_parameter'];
+      $nilai = $_POST[$nama_param] ?? null;
+
+      if ($nilai === null || $nilai === '') {
+        $pesan = "<div class='alert alert-danger'>
+                    Input " . ucwords(str_replace('_', ' ', $nama_param)) . " tidak valid.
+                  </div>";
+        break;
+      }
+
+      $data_input[] = [
+        'parameter_id' => $param['id'],
+        'nama' => $nama_param,
+        'nilai' => (float)$nilai
+      ];
+
+      $nilai_for_python[] = (float)$nilai;
+    }
+
+    if (empty($pesan)) {
+
+      /* ================================
+         INSERT IBU (IDENTITAS SAJA)
+      ================================= */
+      $stmt = mysqli_prepare(
+        $conn,
+        "INSERT INTO ibu_hamil (nama_ibu, created_by)
+         VALUES (?, ?)"
+      );
+
+      mysqli_stmt_bind_param(
+        $stmt,
+        "si",
+        $nama_ibu,
+        $created_by
+      );
+
+      if (!mysqli_stmt_execute($stmt)) {
+        $pesan = "<div class='alert alert-danger'>Gagal menyimpan data ibu.</div>";
+      } else {
+
+        $ibu_id = mysqli_insert_id($conn);
+
+        /* ================================
+           INSERT NILAI PARAMETER
+        ================================= */
+        foreach ($data_input as $item) {
+
+          $stmt_np = mysqli_prepare(
+            $conn,
+            "INSERT INTO nilai_parameter
+             (ibu_id, parameter_id, nilai)
+             VALUES (?, ?, ?)"
+          );
+
+          mysqli_stmt_bind_param(
+            $stmt_np,
+            "iid",
+            $ibu_id,
+            $item['parameter_id'],
+            $item['nilai']
+          );
+
+          mysqli_stmt_execute($stmt_np);
+        }
+
+        /* ================================
+           PANGGIL PYTHON (DYNAMIC ARG)
+        ================================= */
+        $python = "../python/python.exe";
+        $script = "../python/predict.py";
+
+        $args = implode(" ", $nilai_for_python);
+        $command = "\"$python\" \"$script\" $args 2>&1";
+
+        $output = shell_exec($command);
+
+        if ($output === null || trim($output) === "") {
+          die("Python tidak mengembalikan output.<pre>$command</pre>");
+        }
+
+        $result = json_decode($output, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+          die("Output Python bukan JSON valid:<pre>$output</pre>");
+        }
+
+        /* ================================
+   VALIDASI OUTPUT PYTHON
+================================ */
+
+        if (!isset($result['hasil']) || !isset($result['probabilitas'])) {
+
+          die("
+    Python tidak mengembalikan format yang benar:
+    <pre>$output</pre>
+  ");
+        }
+
+        /* ================================
+        MAPPING HASIL
+        ================================ */
+
+        $hasil_db = null;
+
+        if ($result['hasil'] === 'STUNTING') {
+          $hasil_db = 'Berisiko Stunting';
+        } elseif ($result['hasil'] === 'NORMAL') {
+          $hasil_db = 'Tidak Berisiko';
+        }
+
+        if ($hasil_db === null) {
+          die("Nilai hasil dari Python tidak dikenali: " . $result['hasil']);
+        }
+
+        /* ================================
+        SIMPAN HASIL PREDIKSI
+        ================================= */
+        $stmt_pred = mysqli_prepare(
+          $conn,
+          "INSERT INTO prediksi
+           (ibu_id, hasil, probabilitas)
+           VALUES (?, ?, ?)"
+        );
+
+        mysqli_stmt_bind_param(
+          $stmt_pred,
+          "isd",
+          $ibu_id,
+          $hasil_db,
+          $result['probabilitas']
+        );
+
+        mysqli_stmt_execute($stmt_pred);
+        $prediksi_id = mysqli_insert_id($conn);
+
+        /* ================================
+           SIMPAN FAKTOR RISIKO
+        ================================= */
+        foreach ($result['faktor'] as $param => $kontribusi) {
+
+          // cari nilai dari data_input
+          $nilai = 0;
+          foreach ($data_input as $item) {
+            if ($item['nama'] == $param) {
+              $nilai = $item['nilai'];
+              break;
+            }
+          }
+
+          $stmt_fr = mysqli_prepare(
+            $conn,
+            "INSERT INTO faktor_risiko
+             (prediksi_id, parameter, nilai, kontribusi)
+             VALUES (?, ?, ?, ?)"
+          );
+
+          mysqli_stmt_bind_param(
+            $stmt_fr,
+            "isdd",
+            $prediksi_id,
+            $param,
+            $nilai,
+            $kontribusi
+          );
+
+          mysqli_stmt_execute($stmt_fr);
+        }
+
+        /* ================================
+           TAMPILKAN HASIL
+        ================================= */
+        $warna = $hasil_db == 'Berisiko Stunting' ? 'danger' : 'success';
+        $label = $hasil_db == 'Berisiko Stunting'
+          ? 'BERISIKO STUNTING'
+          : 'TIDAK BERISIKO';
+
+        $persen = round($result['probabilitas'] * 100, 2);
+
+        $pesan = "
+        <div class='card border-$warna mt-4 animate-result'>
+          <div class='card-body text-center'>
+            <h5 class='text-$warna mb-2'>$label</h5>
+            <h1 class='fw-bold'>$persen%</h1>
+            <p class='text-muted mb-0'>Probabilitas Prediksi</p>
+          </div>
+        </div>
+        ";
+      }
+    }
   }
-
-  // ===============================
-  // PESAN VISUAL HASIL
-  // ===============================
-  $warna = $hasil_db == 'Berisiko Stunting' ? 'danger' : 'success';
-  $label = $hasil_db == 'Berisiko Stunting' ? 'BERISIKO STUNTING' : 'TIDAK BERISIKO';
-
-  $persen = round($result['probabilitas'] * 100, 2);
-
-  $pesan = "
-  <div class='card border-$warna mt-4 animate-result'>
-    <div class='card-body text-center'>
-      <h5 class='text-$warna mb-2'>$label</h5>
-      <h1 class='fw-bold'>$persen%</h1>
-      <p class='text-muted mb-0'>Probabilitas Prediksi</p>
-    </div>
-  </div>
-  ";
 }
+
+/* ======================================================
+   AMBIL PARAMETER UNTUK FORM
+====================================================== */
+$parameters = mysqli_query(
+  $conn,
+  "SELECT * FROM parameter
+   WHERE status_aktif = 1
+   ORDER BY id ASC"
+);
 ?>
 
 <!doctype html>
@@ -228,37 +300,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <input type="text" name="nama_ibu" class="form-control" required>
                       </div>
 
-                      <div class="mb-3">
-                        <label class="form-label">Usia Ibu</label>
-                        <input type="number" name="usia" class="form-control" required>
-                      </div>
-
-                      <div class="mb-3">
-                        <label class="form-label">Tinggi Badan</label>
-                        <div class="input-group">
-                          <input type="number" step="0.1" name="tinggi_badan"
-                            class="form-control" required>
-                          <span class="input-group-text">cm</span>
-                        </div>
-                      </div>
-
-                      <div class="mb-3">
-                        <label class="form-label">Lingkar Lengan Atas (LILA)</label>
-                        <div class="input-group">
-                          <input type="number" step="0.1" name="lingkar_lengan_atas"
-                            class="form-control" required>
-                          <span class="input-group-text">cm</span>
-                        </div>
-                      </div>
-
-                      <div class="mb-3">
-                        <label class="form-label">Kadar Hemoglobin</label>
-                        <div class="input-group">
-                          <input type="number" step="0.1" name="kadar_hb" class="form-control"
+                      <?php while ($param = mysqli_fetch_assoc($parameters)): ?>
+                        <div class="mb-3">
+                          <label class="form-label">
+                            <?= ucwords(str_replace('_', ' ', $param['nama_parameter'])) ?>
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            name="<?= $param['nama_parameter'] ?>"
+                            class="form-control"
                             required>
-                          <span class="input-group-text">g/dL</span>
                         </div>
-                      </div>
+                      <?php endwhile; ?>
 
                       <div class="d-flex justify-content-end gap-2 mt-4">
                         <button type="reset" class="btn btn-secondary">Reset</button>

@@ -1,7 +1,61 @@
 <?php
 require_once "../config.php";
 
+/* ===============================
+   PROSES TAMBAH PARAMETER
+================================ */
+if (isset($_POST['tambah_parameter'])) {
+
+  $nama = trim($_POST['nama_parameter']);
+  $tipe = trim($_POST['tipe_data']);
+
+  if ($nama !== "" && $tipe !== "") {
+
+    $stmt = mysqli_prepare(
+      $conn,
+      "INSERT INTO parameter (nama_parameter, tipe_data, status_aktif)
+       VALUES (?, ?, 1)"
+    );
+
+    mysqli_stmt_bind_param($stmt, "ss", $nama, $tipe);
+    mysqli_stmt_execute($stmt);
+  }
+
+  header("Location: table-data-parameter.php");
+  exit;
+}
+
+/* ===============================
+   TOGGLE STATUS
+================================ */
+if (isset($_POST['toggle_parameter'])) {
+
+  $id = (int)$_POST['id'];
+
+  mysqli_query($conn, "
+    UPDATE parameter
+    SET status_aktif = IF(status_aktif = 1, 0, 1)
+    WHERE id = $id
+  ");
+
+  header("Location: table-data-parameter.php");
+  exit;
+}
+
+/* ===============================
+   HAPUS PARAMETER
+================================ */
+if (isset($_POST['hapus_parameter'])) {
+
+  $id = (int)$_POST['id'];
+
+  mysqli_query($conn, "DELETE FROM parameter WHERE id = $id");
+
+  header("Location: table-data-parameter.php");
+  exit;
+}
 ?>
+
 <!doctype html>
 
 <html
@@ -56,121 +110,25 @@ require_once "../config.php";
 </head>
 
 <body>
-  <!-- Loader Overlay -->
-  <div id="loaderOverlay" class="loader-overlay">
-    <div class="loader-content">
-      <!-- Spinner animasi empat titik -->
-      <div class="spinner">
-        <div></div>
-        <div></div>
-        <div></div>
-        <div></div>
-      </div>
-      <p>Sedang training...</p>
-    </div>
+  <!-- LOADER OVERLAY -->
+  <div id="loaderOverlay" style="
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(255,255,255,0.8);
+  z-index:9999;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+">
+
+    <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status"></div>
+    <p class="mt-3 fw-semibold">Sedang melakukan training model...</p>
+
   </div>
-
-  <style>
-    /* Overlay: default hidden */
-    .loader-overlay {
-      display: none;
-      /* default hidden */
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      z-index: 2000;
-
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-
-      color: #fff;
-      font-family: sans-serif;
-    }
-
-    /* Loader content */
-    .loader-content {
-      text-align: center;
-    }
-
-    /* Spinner empat titik */
-    .spinner {
-      display: inline-block;
-      position: relative;
-      width: 80px;
-      height: 80px;
-    }
-
-    .spinner div {
-      position: absolute;
-      width: 16px;
-      height: 16px;
-      background: #4ade80;
-      /* hijau cerah */
-      border-radius: 50%;
-      animation: spinnerAnim 1.2s linear infinite;
-    }
-
-    .spinner div:nth-child(1) {
-      top: 8px;
-      left: 8px;
-      animation-delay: 0s;
-    }
-
-    .spinner div:nth-child(2) {
-      top: 8px;
-      right: 8px;
-      animation-delay: 0.3s;
-    }
-
-    .spinner div:nth-child(3) {
-      bottom: 8px;
-      right: 8px;
-      animation-delay: 0.6s;
-    }
-
-    .spinner div:nth-child(4) {
-      bottom: 8px;
-      left: 8px;
-      animation-delay: 0.9s;
-    }
-
-    /* Animasi titik membesar-mengecil */
-    @keyframes spinnerAnim {
-
-      0%,
-      100% {
-        transform: scale(0);
-      }
-
-      50% {
-        transform: scale(1);
-      }
-    }
-
-    /* Pulsating text */
-    .loader-content p {
-      font-size: 1.5rem;
-      margin-top: 20px;
-      animation: pulse 1.2s infinite;
-      color: #4ade80;
-    }
-
-    @keyframes pulse {
-
-      0%,
-      100% {
-        opacity: 1;
-      }
-
-      50% {
-        opacity: 0.5;
-      }
-    }
-  </style>
 
   <!-- Toast container -->
   <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999">
@@ -230,52 +188,70 @@ require_once "../config.php";
                     <th>No</th>
                     <th>Nama Parameter</th>
                     <th>Tipe Data</th>
-                    <th>Status Aktif</th>
+                    <th>Status</th>
                     <th>Aksi</th>
                   </tr>
                 </thead>
 
-                <tbody class="table-border-bottom-0">
+                <tbody>
                   <?php
                   $no = 1;
-                  $query = "SELECT * FROM parameter ORDER BY id ASC";
-                  $result = mysqli_query($conn, $query);
+                  $result = mysqli_query($conn, "SELECT * FROM parameter ORDER BY id ASC");
 
                   if (mysqli_num_rows($result) > 0):
                     while ($row = mysqli_fetch_assoc($result)):
                   ?>
                       <tr>
                         <td><?= $no++ ?></td>
-                        <td><?= htmlspecialchars($row['nama_parameter'], ENT_QUOTES, 'UTF-8') ?></td>
-                        <td><?= $row['tipe_data'] ?></td>
+                        <td><?= htmlspecialchars($row['nama_parameter']) ?></td>
+                        <td><?= htmlspecialchars($row['tipe_data']) ?></td>
+
                         <td>
                           <?php if ($row['status_aktif']): ?>
-                            <span class="badge bg-label-success">Aktif</span>
+                            <span class="badge bg-success">Aktif</span>
                           <?php else: ?>
-                            <span class="badge bg-label-secondary">Nonaktif</span>
+                            <span class="badge bg-secondary">Nonaktif</span>
                           <?php endif; ?>
                         </td>
+
                         <td>
                           <div class="dropdown">
-                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                              <i class="icon-base bx bx-dots-vertical-rounded"></i>
+                            <button type="button"
+                              class="btn p-0 dropdown-toggle hide-arrow"
+                              data-bs-toggle="dropdown">
+                              <i class="bx bx-dots-vertical-rounded"></i>
                             </button>
+
                             <div class="dropdown-menu">
-                              <a class="dropdown-item" href="toggle_parameter.php?id=<?= $row['id'] ?>">
-                                <i class="icon-base bx bx-refresh me-1"></i>
-                                <?= $row['status_aktif'] ? 'Nonaktifkan' : 'Aktifkan' ?>
-                              </a>
-                              <a class="dropdown-item text-danger" href="hapus_parameter.php?id=<?= $row['id'] ?>" onclick="return confirm('Yakin hapus parameter?')">
-                                <i class="icon-base bx bx-trash me-1"></i> Hapus
-                              </a>
+
+                              <!-- TOGGLE -->
+                              <form method="POST">
+                                <input type="hidden" name="id" value="<?= $row['id'] ?>">
+                                <button type="submit"
+                                  name="toggle_parameter"
+                                  class="dropdown-item">
+                                  <i class="bx bx-refresh me-1"></i>
+                                  <?= $row['status_aktif'] ? 'Nonaktifkan' : 'Aktifkan' ?>
+                                </button>
+                              </form>
+
+                              <!-- HAPUS -->
+                              <form method="POST"
+                                onsubmit="return confirm('Yakin hapus parameter?')">
+                                <input type="hidden" name="id" value="<?= $row['id'] ?>">
+                                <button type="submit"
+                                  name="hapus_parameter"
+                                  class="dropdown-item text-danger">
+                                  <i class="bx bx-trash me-1"></i> Hapus
+                                </button>
+                              </form>
+
                             </div>
                           </div>
                         </td>
                       </tr>
-                    <?php
-                    endwhile;
-                  else:
-                    ?>
+                    <?php endwhile; ?>
+                  <?php else: ?>
                     <tr>
                       <td colspan="5" class="text-center text-muted py-4">
                         Tidak ada parameter
@@ -299,6 +275,74 @@ require_once "../config.php";
       <!-- Content wrapper -->
     </div>
     <!-- / Layout page -->
+  </div>
+  <!-- MODAL TAMBAH -->
+  <div class="modal fade" id="modalTambahParameter" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+
+        <form method="POST">
+
+          <div class="modal-header">
+            <h5 class="modal-title">Tambah Parameter</h5>
+          </div>
+
+          <div class="modal-body">
+
+            <div class="mb-3">
+              <label class="form-label">Nama Parameter</label>
+              <input type="text"
+                name="nama_parameter"
+                class="form-control"
+                required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Jenis Input</label>
+              <select name="tipe_data"
+                class="form-select"
+                required>
+                <option value="">Pilih jenis data</option>
+
+                <option value="int">
+                  Angka Bulat (contoh: 20, 35)
+                </option>
+
+                <option value="float">
+                  Angka Desimal (contoh: 150.5, 11.2)
+                </option>
+
+                <option value="string">
+                  Teks (contoh: Normal, Berisiko)
+                </option>
+
+                <option value="date">
+                  Tanggal (contoh: 12-02-2026)
+                </option>
+
+              </select>
+            </div>
+
+          </div>
+
+          <div class="modal-footer">
+            <button type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal">
+              Batal
+            </button>
+
+            <button type="submit"
+              name="tambah_parameter"
+              class="btn btn-primary">
+              Simpan
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+    </div>
   </div>
 
   <!-- Overlay -->
