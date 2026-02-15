@@ -58,7 +58,7 @@ $recent = mysqli_query($conn, "
   <link rel="stylesheet" href="../assets/vendor/fonts/iconify-icons.css">
   <link rel="stylesheet" href="../assets/css/demo.css">
   <link rel="stylesheet" href="../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css">
-git 
+
   <!-- Sneat Helpers -->
   <script src="../assets/vendor/js/helpers.js"></script>
   <script src="../assets/js/config.js"></script>
@@ -223,4 +223,4 @@ git
 
 </body>
 
-</html>git 
+</html>
