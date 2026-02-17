@@ -1,4 +1,5 @@
 <?php
+$role = $_SESSION['role'] ?? 'petugas';
 $currentPage = basename($_SERVER['PHP_SELF']);
 ?>
 
@@ -61,75 +62,41 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     </li>
 
     <!-- Tables -->
-    <li class="menu-item <?= in_array($currentPage, ['table-data-ibu.php', 'table-data-parameter.php']) ? 'active open' : '' ?>">
+    <li class="menu-item <?= in_array($currentPage, ['table-data-ibu.php', 'table-data-parameter.php', 'table-data-user.php']) ? 'active open' : '' ?>">
+
       <a href="javascript:void(0);" class="menu-link menu-toggle">
         <i class="menu-icon tf-icons bx bx-bar-chart"></i>
         <div class="text-truncate">Tables</div>
       </a>
+
       <ul class="menu-sub">
+
+        <!-- SELALU TAMPIL -->
         <li class="menu-item <?= $currentPage == 'table-data-ibu.php' ? 'active' : '' ?>">
           <a href="table-data-ibu.php" class="menu-link">
             <div class="text-truncate">Data Ibu</div>
           </a>
         </li>
-        <li class="menu-item <?= $currentPage == 'table-data-parameter.php' ? 'active' : '' ?>">
-          <a href="table-data-parameter.php" class="menu-link">
-            <div class="text-truncate">Data Parameter</div>
-          </a>
-        </li>
-      </ul>
-    </li>
 
-    <li class="menu-header small text-uppercase">
-      <span class="menu-header-text">Misc</span>
-    </li>
-    <!-- Misc Menu Items -->
-    <li class="menu-item">
-      <a href="javascript:void(0);" class="menu-link menu-toggle">
-        <i class="menu-icon tf-icons bx bx-dock-top"></i>
-        <div class="text-truncate" data-i18n="Account Settings">Account Settings</div>
-      </a>
-      <ul class="menu-sub">
-        <li class="menu-item">
-          <a href="html/pages-account-settings-account.html" class="menu-link">
-            <div class="text-truncate" data-i18n="Account">Account</div>
-          </a>
-        </li>
-        <li class="menu-item">
-          <a href="html/pages-account-settings-notifications.html" class="menu-link">
-            <div class="text-truncate" data-i18n="Notifications">Notifications</div>
-          </a>
-        </li>
-        <li class="menu-item">
-          <a href="html/pages-account-settings-connections.html" class="menu-link">
-            <div class="text-truncate" data-i18n="Connections">Connections</div>
-          </a>
-        </li>
-      </ul>
-    </li>
+        <!-- HANYA ADMIN -->
+        <?php if ($role == 'admin'): ?>
 
-    <li class="menu-item">
-      <a href="javascript:void(0);" class="menu-link menu-toggle">
-        <i class="menu-icon tf-icons bx bx-lock-open-alt"></i>
-        <div class="text-truncate" data-i18n="Authentications">Authentications</div>
-      </a>
-      <ul class="menu-sub">
-        <li class="menu-item">
-          <a href="html/auth-login-basic.html" class="menu-link" target="_blank">
-            <div class="text-truncate" data-i18n="Basic">Login</div>
-          </a>
-        </li>
-        <li class="menu-item">
-          <a href="html/auth-register-basic.html" class="menu-link" target="_blank">
-            <div class="text-truncate" data-i18n="Basic">Register</div>
-          </a>
-        </li>
-        <li class="menu-item">
-          <a href="html/auth-forgot-password-basic.html" class="menu-link" target="_blank">
-            <div class="text-truncate" data-i18n="Basic">Forgot Password</div>
-          </a>
-        </li>
+          <li class="menu-item <?= $currentPage == 'table-data-parameter.php' ? 'active' : '' ?>">
+            <a href="table-data-parameter.php" class="menu-link">
+              <div class="text-truncate">Data Parameter</div>
+            </a>
+          </li>
+
+          <li class="menu-item <?= $currentPage == 'table-data-user.php' ? 'active' : '' ?>">
+            <a href="table-data-user.php" class="menu-link">
+              <div class="text-truncate">Data User</div>
+            </a>
+          </li>
+
+        <?php endif; ?>
+
       </ul>
+
     </li>
   </ul>
 </aside>

@@ -1,6 +1,52 @@
 <?php
 require_once "../config.php";
 
+/* ================================
+   PROSES HAPUS
+================================ */
+if (isset($_POST['hapus_id'])) {
+
+  $id = (int) $_POST['hapus_id'];
+
+  if ($id > 0) {
+
+    /* Ambil semua prediksi */
+    $getPred = mysqli_query($conn, "
+      SELECT id FROM prediksi
+      WHERE ibu_id = $id AND deleted_at IS NULL
+    ");
+
+    /* Soft delete faktor_risiko */
+    while ($row = mysqli_fetch_assoc($getPred)) {
+
+      mysqli_query(
+        $conn,
+        "
+        UPDATE faktor_risiko
+        SET deleted_at = NOW()
+        WHERE prediksi_id = " . (int)$row['id']
+      );
+    }
+
+    /* Soft delete prediksi */
+    mysqli_query($conn, "
+      UPDATE prediksi
+      SET deleted_at = NOW()
+      WHERE ibu_id = $id
+    ");
+
+    /* Soft delete ibu */
+    mysqli_query($conn, "
+      UPDATE ibu_hamil
+      SET deleted_at = NOW()
+      WHERE id = $id
+    ");
+
+    /* set toast */
+    $toast = "Data berhasil dihapus";
+    $toast_type = "success";
+  }
+}
 ?>
 <!doctype html>
 
@@ -12,7 +58,7 @@ require_once "../config.php";
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
 
-  <title>Prediksi Stunting</title>
+  <title>DATA | STIKES Semarang - Table Data Ibu</title>
 
   <meta name="description" content="" />
 
@@ -22,9 +68,6 @@ require_once "../config.php";
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap"
-    rel="stylesheet" />
 
   <link rel="stylesheet" href="../assets/vendor/fonts/iconify-icons.css" />
 
@@ -52,6 +95,39 @@ require_once "../config.php";
 </head>
 
 <body>
+  <!-- Toast container -->
+  <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999">
+
+    <?php if (!empty($toast)): ?>
+
+      <div
+        id="userToast"
+        class="toast border-0 shadow"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true">
+
+        <div class="alert alert-<?= $toast_type == 'success' ? 'success' : 'danger' ?>
+                  alert-dismissible mb-0 d-flex align-items-center">
+
+          <span id="userToastBody">
+            <?= htmlspecialchars($toast) ?>
+          </span>
+
+          <button
+            type="button"
+            class="btn-close ms-auto"
+            data-bs-dismiss="toast"
+            aria-label="Close">
+          </button>
+
+        </div>
+
+      </div>
+
+    <?php endif; ?>
+
+  </div>
   <!-- Layout wrapper -->
   <div class="layout-wrapper layout-content-navbar">
     <div class="layout-container">
@@ -71,38 +147,47 @@ require_once "../config.php";
           <div class="container-xxl flex-grow-1 container-p-y">
             <!-- Hoverable Table rows -->
             <div class="card">
-              <h5 class="card-header">Data Prediksi</h5>
               <div class="table-responsive text-nowrap">
                 <div class="card mb-4">
+
                   <div class="card-body">
-                    <div class="row g-3 align-items-center">
+                    <div class="row align-items-center">
 
-                      <div class="col-md-6">
-                        <div class="input-group">
-                          <span class="input-group-text bg-transparent">
-                            <i class="bx bx-search"></i>
-                          </span>
-                          <input type="text" id="searchInput" class="form-control"
-                            placeholder="Cari nama ibu...">
+                      <!-- Judul (kiri) -->
+                      <div class="col-md-3">
+                        <h5 class="mb-0">Data Prediksi</h5>
+                      </div>
+
+                      <!-- Container kanan -->
+                      <div class="col-md-9">
+                        <div class="row g-3 justify-content-end">
+
+                          <!-- Search -->
+                          <div class="col-md-5">
+                            <div class="input-group">
+                              <span class="input-group-text bg-transparent">
+                                <i class="bx bx-search"></i>
+                              </span>
+                              <input type="text" id="searchInput" class="form-control"
+                                placeholder="Cari nama ibu...">
+                            </div>
+                          </div>
+
+                          <!-- Filter -->
+                          <div class="col-md-4">
+                            <select id="filterSelect" class="form-select">
+                              <option value="">Semua Status</option>
+                              <option value="Berisiko Stunting">Berisiko Stunting</option>
+                              <option value="Tidak Berisiko">Tidak Berisiko</option>
+                            </select>
+                          </div>
+
                         </div>
-                      </div>
-
-                      <div class="col-md-4">
-                        <select id="filterSelect" class="form-select">
-                          <option value="">Semua Status</option>
-                          <option value="Berisiko">Berisiko</option>
-                          <option value="Tidak">Tidak Berisiko</option>
-                        </select>
-                      </div>
-
-                      <div class="col-md-2 text-md-end">
-                        <span class="badge bg-label-primary w-100 py-2">
-                          Filter Data
-                        </span>
                       </div>
 
                     </div>
                   </div>
+
                 </div>
 
                 <?php
@@ -110,8 +195,7 @@ require_once "../config.php";
 
                 $query = "
 SELECT
-  ih.id,
-  ih.nama_ibu,
+  ih.*,
   pr.hasil,
 
   -- Ambil nilai usia dari nilai_parameter
@@ -142,6 +226,7 @@ ORDER BY ih.created_at DESC
                       <th>Nama Ibu</th>
                       <th>Usia</th>
                       <th>Hasil Prediksi</th>
+                      <th>Tanggal Periksa</th>
                       <th>Aksi</th>
                     </tr>
                   </thead>
@@ -163,13 +248,15 @@ ORDER BY ih.created_at DESC
 
                           <td>
                             <?php if ($row['hasil'] == 'Berisiko Stunting'): ?>
-                              <span class="badge bg-label-danger">Berisiko</span>
+                              <span class="badge bg-label-danger">Berisiko Stunting</span>
                             <?php elseif ($row['hasil'] == 'Tidak Berisiko'): ?>
                               <span class="badge bg-label-success">Tidak Berisiko</span>
                             <?php else: ?>
                               <span class="badge bg-label-secondary">Belum Diprediksi</span>
                             <?php endif; ?>
                           </td>
+
+                          <td><?= htmlspecialchars($row['created_at']) ?></td>
 
                           <td>
                             <div class="dropdown">
@@ -259,23 +346,50 @@ ORDER BY ih.created_at DESC
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
 
-        <div class="modal-header">
-          <h5 class="modal-title text-danger">Konfirmasi Hapus</h5>
-        </div>
+        <form method="POST">
 
-        <div class="modal-body">
-          Apakah Anda yakin ingin menghapus data ini?
-        </div>
+          <input type="hidden" name="hapus_id" id="hapus_id">
 
-        <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-          <a id="deleteBtn" href="#" class="btn btn-danger">Ya, Hapus</a>
-        </div>
+          <div class="modal-header">
+            <h5 class="modal-title">Konfirmasi Hapus</h5>
+          </div>
+
+          <div class="modal-body">
+            Yakin ingin menghapus data ini?
+          </div>
+
+          <div class="modal-footer">
+
+            <button type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal">
+              Batal
+            </button>
+
+            <button type="submit"
+              class="btn btn-danger">
+              Hapus
+            </button>
+
+          </div>
+
+        </form>
 
       </div>
     </div>
   </div>
 
+  <script>
+    (function() {
+      const text = "DATA | STIKES Semarang - Table Data Ibu  • ";
+      let i = 0;
+
+      setInterval(() => {
+        document.title = text.slice(i) + text.slice(0, i);
+        i = (i + 1) % text.length;
+      }, 120);
+    })();
+  </script>
   <script>
     function showDetail(id) {
 
@@ -307,37 +421,30 @@ ORDER BY ih.created_at DESC
   <script>
     function confirmDelete(id) {
 
-      const deleteBtn = document.getElementById("deleteBtn");
-      deleteBtn.href = "hapus.php?id=" + id;
+      document.getElementById("hapus_id").value = id;
 
-      const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-      modal.show();
+      new bootstrap.Modal(
+        document.getElementById("deleteModal")
+      ).show();
+
     }
   </script>
 
-
-  <!-- Smooth Toast Popup -->
-  <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999">
-    <div id="successToast" class="toast align-items-center text-bg-success border-0" role="alert">
-      <div class="d-flex">
-        <div class="toast-body" id="toastMessage"></div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-      </div>
-    </div>
-  </div>
-
   <script>
     document.addEventListener("DOMContentLoaded", function() {
-      const msg = sessionStorage.getItem("toast_success");
 
-      if (msg) {
-        document.getElementById("toastMessage").innerText = msg;
-        const toast = new bootstrap.Toast(document.getElementById("successToast"), {
+      const toastEl = document.getElementById("userToast");
+
+      if (toastEl) {
+
+        const toast = new bootstrap.Toast(toastEl, {
           delay: 3000
         });
+
         toast.show();
-        sessionStorage.removeItem("toast_success");
+
       }
+
     });
   </script>
   <!-- filter pencarian -->
@@ -346,22 +453,30 @@ ORDER BY ih.created_at DESC
     const filterSelect = document.getElementById("filterSelect");
 
     function filterTable() {
-      const search = searchInput.value.toLowerCase();
-      const filter = filterSelect.value.toLowerCase();
+
+      const search = searchInput.value.toLowerCase().trim();
+      const filter = filterSelect.value.toLowerCase().trim();
 
       document.querySelectorAll("tbody tr").forEach(row => {
 
-        // kolom nama ibu
-        const nama = row.querySelector("td:nth-child(2)")?.innerText.toLowerCase() || "";
+        // kolom ke-2 = Nama Ibu
+        const nama = row.querySelector("td:nth-child(2)")
+          ?.textContent.toLowerCase().trim() || "";
 
-        // kolom hasil (badge)
-        const status = row.querySelector("td:nth-child(7)")?.innerText.toLowerCase() || "";
+        // kolom ke-4 = Hasil Prediksi
+        const status = row.querySelector("td:nth-child(4)")
+          ?.textContent.toLowerCase().trim() || "";
 
         const cocokNama = nama.includes(search);
-        const cocokStatus = filter === "" || status.includes(filter);
 
-        row.style.display = cocokNama && cocokStatus ? "" : "none";
+        const cocokStatus =
+          filter === "" ||
+          status.includes(filter);
+
+        row.style.display = (cocokNama && cocokStatus) ? "" : "none";
+
       });
+
     }
 
     searchInput.addEventListener("input", filterTable);

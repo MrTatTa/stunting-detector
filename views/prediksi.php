@@ -241,7 +241,7 @@ $parameters = mysqli_query(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Prediksi Stunting</title>
+  <title>PREDIKSI | STIKES Semarang - Prediksi Bayi Stunting</title>
 
   <link rel="icon" type="image/x-icon" href="../assets/img/favicon/favicon.ico">
   <link rel="stylesheet" href="../assets/vendor/css/core.css">
@@ -272,6 +272,31 @@ $parameters = mysqli_query(
 </head>
 
 <body>
+  <!-- LOADER OVERLAY -->
+  <div id="loaderOverlay" style="
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(255,255,255,0.8);
+  z-index:9999;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+">
+
+    <div class="spinner-border text-primary"
+      style="width:3rem;height:3rem;"
+      role="status">
+    </div>
+
+    <p class="mt-3 fw-semibold">
+      Sedang melakukan prediksi...
+    </p>
+
+  </div>
 
   <div class="layout-wrapper layout-content-navbar">
     <div class="layout-container">
@@ -284,10 +309,12 @@ $parameters = mysqli_query(
         <div class="content-wrapper">
           <div class="container-xxl flex-grow-1 container-p-y">
 
-            <div class="row justify-content-center">
-              <div class="col-lg-6 col-md-8">
+            <div class="row">
 
-                <form method="POST">
+              <!-- FORM PREDIKSI -->
+              <div class="col-lg-6 col-md-12">
+
+                <form method="POST" id="formPrediksi">
                   <div class="card">
                     <h5 class="card-header text-center">Prediksi Potensi Stunting</h5>
 
@@ -322,25 +349,119 @@ $parameters = mysqli_query(
                     </div>
                   </div>
                 </form>
+              </div>
 
+
+              <!-- PANEL REFERENSI -->
+              <div class="col-lg-6 col-md-12">
+
+                <div class="card border-primary">
+                  <h5 class="card-header text-primary">
+                    Referensi Parameter Normal
+                  </h5>
+
+                  <div class="card-body">
+
+                    <div class="mb-3">
+                      <strong>Tinggi Badan Ibu</strong><br>
+
+                      <span class="badge bg-label-success">Normal</span>
+                      ≥ 150 cm
+                      <br>
+
+                      <span class="badge bg-label-danger">Risiko</span>
+                      &lt; 150 cm
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                      <strong>Lingkar Lengan Atas (LILA)</strong><br>
+
+                      <span class="badge bg-label-success">Normal</span>
+                      ≥ 23.5 cm
+                      <br>
+
+                      <span class="badge bg-label-danger">Risiko</span>
+                      &lt; 23.5 cm
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                      <strong>Kadar Hemoglobin (Hb)</strong><br>
+
+                      <span class="badge bg-label-success">Normal</span>
+                      ≥ 11 g/dL
+                      <br>
+
+                      <span class="badge bg-label-danger">Risiko Anemia</span>
+                      &lt; 11 g/dL
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                      <strong>Usia Ibu</strong><br>
+
+                      <span class="badge bg-label-success">Ideal</span>
+                      20 – 35 tahun
+                      <br>
+
+                      <span class="badge bg-label-warning">Risiko</span>
+                      &lt; 20 atau &gt; 35 tahun
+                    </div>
+
+                    <hr>
+
+                    <div class="alert alert-info mb-0">
+                      Nilai di luar batas normal dapat meningkatkan risiko stunting.
+                    </div>
+
+                  </div>
+
+                </div>
               </div>
             </div>
 
           </div>
 
-          <?php include 'partials/footer.php'; ?>
         </div>
-      </div>
-    </div>
-  </div>
 
-  <script src="../assets/vendor/libs/jquery/jquery.js"></script>
-  <script src="../assets/vendor/libs/popper/popper.js"></script>
-  <script src="../assets/vendor/js/bootstrap.js"></script>
-  <script src="../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
-  <script src="../assets/vendor/js/menu.js"></script>
-  <script src="../assets/js/main.js"></script>
-  <div class="layout-overlay layout-menu-toggle"></div>
+
+        <?php include 'partials/footer.php'; ?>
+      </div>
+
+      <script>
+        const form = document.getElementById("formPrediksi");
+        const loader = document.getElementById("loaderOverlay");
+        const submitBtn = form.querySelector("button[type='submit']");
+
+        form.addEventListener("submit", function() {
+
+          loader.style.display = "flex";
+
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = `
+    <span class="spinner-border spinner-border-sm me-2"></span>
+    Memproses...
+  `;
+
+        });
+
+        window.addEventListener("load", function() {
+
+          loader.style.display = "none";
+
+        });
+      </script>
+      <script src="../assets/vendor/libs/jquery/jquery.js"></script>
+      <script src="../assets/vendor/libs/popper/popper.js"></script>
+      <script src="../assets/vendor/js/bootstrap.js"></script>
+      <script src="../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
+      <script src="../assets/vendor/js/menu.js"></script>
+      <script src="../assets/js/main.js"></script>
+      <div class="layout-overlay layout-menu-toggle"></div>
 
 
 

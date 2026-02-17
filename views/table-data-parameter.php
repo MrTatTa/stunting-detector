@@ -9,37 +9,75 @@ if (isset($_POST['tambah_parameter'])) {
   $nama = trim($_POST['nama_parameter']);
   $tipe = trim($_POST['tipe_data']);
 
-  if ($nama !== "" && $tipe !== "") {
+  if ($nama === "" || $tipe === "") {
+
+    $toast = "Nama parameter dan tipe data wajib diisi.";
+    $toast_type = "danger";
+  } else {
 
     $stmt = mysqli_prepare(
       $conn,
-      "INSERT INTO parameter (nama_parameter, tipe_data, status_aktif)
+      "INSERT INTO parameter
+       (nama_parameter, tipe_data, status_aktif)
        VALUES (?, ?, 1)"
     );
 
     mysqli_stmt_bind_param($stmt, "ss", $nama, $tipe);
-    mysqli_stmt_execute($stmt);
-  }
 
-  header("Location: table-data-parameter.php");
-  exit;
+    if (mysqli_stmt_execute($stmt)) {
+
+      $toast = "Parameter berhasil ditambahkan.";
+      $toast_type = "success";
+    } else {
+
+      $toast = "Gagal menambahkan parameter.";
+      $toast_type = "danger";
+    }
+
+    mysqli_stmt_close($stmt);
+  }
 }
 
-/* ===============================
-   TOGGLE STATUS
+/* ================================
+   TOGGLE STATUS PARAMETER
 ================================ */
 if (isset($_POST['toggle_parameter'])) {
 
-  $id = (int)$_POST['id'];
+  $id = (int) ($_POST['id'] ?? 0);
 
-  mysqli_query($conn, "
-    UPDATE parameter
-    SET status_aktif = IF(status_aktif = 1, 0, 1)
-    WHERE id = $id
-  ");
+  if ($id > 0) {
 
-  header("Location: table-data-parameter.php");
-  exit;
+    /* ambil status sekarang */
+    $get = mysqli_query($conn, "
+      SELECT status_aktif
+      FROM parameter
+      WHERE id = $id
+    ");
+
+    if ($row = mysqli_fetch_assoc($get)) {
+
+      $status_baru = $row['status_aktif'] ? 0 : 1;
+
+      $update = mysqli_query($conn, "
+        UPDATE parameter
+        SET status_aktif = $status_baru
+        WHERE id = $id
+      ");
+
+      if ($update) {
+
+        $toast = $status_baru
+          ? "Parameter berhasil diaktifkan"
+          : "Parameter berhasil dinonaktifkan";
+
+        $toast_type = "success";
+      } else {
+
+        $toast = "Gagal mengubah status parameter";
+        $toast_type = "danger";
+      }
+    }
+  }
 }
 
 /* ===============================
@@ -49,10 +87,30 @@ if (isset($_POST['hapus_parameter'])) {
 
   $id = (int)$_POST['id'];
 
-  mysqli_query($conn, "DELETE FROM parameter WHERE id = $id");
+  if ($id > 0) {
 
-  header("Location: table-data-parameter.php");
-  exit;
+    $stmt = mysqli_prepare($conn, "DELETE FROM parameter WHERE id = ?");
+    mysqli_stmt_bind_param($stmt, "i", $id);
+
+    if (mysqli_stmt_execute($stmt)) {
+
+      if (mysqli_stmt_affected_rows($stmt) > 0) {
+
+        $toast = "Parameter berhasil dihapus.";
+        $toast_type = "success";
+      } else {
+
+        $toast = "Parameter tidak ditemukan.";
+        $toast_type = "danger";
+      }
+    } else {
+
+      $toast = "Gagal menghapus parameter.";
+      $toast_type = "danger";
+    }
+
+    mysqli_stmt_close($stmt);
+  }
 }
 ?>
 
@@ -70,7 +128,7 @@ if (isset($_POST['hapus_parameter'])) {
     name="viewport"
     content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
 
-  <title>Demo: Tables - Basic Tables | Sneat - Bootstrap Dashboard FREE</title>
+  <title>DATA | STIKES Semarang - Table Data Parameter</title>
 
   <meta name="description" content="" />
 
@@ -80,9 +138,6 @@ if (isset($_POST['hapus_parameter'])) {
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap"
-    rel="stylesheet" />
 
   <link rel="stylesheet" href="../assets/vendor/fonts/iconify-icons.css" />
 
@@ -127,6 +182,40 @@ if (isset($_POST['hapus_parameter'])) {
 
     <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status"></div>
     <p class="mt-3 fw-semibold">Sedang melakukan training model...</p>
+
+  </div>
+
+  <!-- Toast container -->
+  <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999">
+
+    <?php if (!empty($toast)): ?>
+
+      <div
+        id="userToast"
+        class="toast border-0 shadow"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true">
+
+        <div class="alert alert-<?= $toast_type == 'success' ? 'success' : 'danger' ?>
+                  alert-dismissible mb-0 d-flex align-items-center">
+
+          <span id="userToastBody">
+            <?= htmlspecialchars($toast) ?>
+          </span>
+
+          <button
+            type="button"
+            class="btn-close ms-auto"
+            data-bs-dismiss="toast"
+            aria-label="Close">
+          </button>
+
+        </div>
+
+      </div>
+
+    <?php endif; ?>
 
   </div>
 
@@ -236,20 +325,17 @@ if (isset($_POST['hapus_parameter'])) {
                               </form>
 
                               <!-- HAPUS -->
-                              <form method="POST"
-                                onsubmit="return confirm('Yakin hapus parameter?')">
-                                <input type="hidden" name="id" value="<?= $row['id'] ?>">
-                                <button type="submit"
-                                  name="hapus_parameter"
-                                  class="dropdown-item text-danger">
-                                  <i class="bx bx-trash me-1"></i> Hapus
-                                </button>
-                              </form>
+                              <a class="dropdown-item text-danger"
+                                href="javascript:void(0);"
+                                onclick="confirmDelete(<?= (int)$row['id'] ?>)">
+                                <i class="icon-base bx bx-trash me-1"></i> Hapus
+                              </a>
 
                             </div>
                           </div>
                         </td>
                       </tr>
+
                     <?php endwhile; ?>
                   <?php else: ?>
                     <tr>
@@ -276,6 +362,59 @@ if (isset($_POST['hapus_parameter'])) {
     </div>
     <!-- / Layout page -->
   </div>
+  <!-- MODAL DELETE -->
+  <div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+
+        <div class="modal-header">
+          <h5 class="modal-title text-danger">
+            Konfirmasi Hapus
+          </h5>
+        </div>
+
+        <div class="modal-body">
+          Apakah Anda yakin ingin menghapus parameter ini?
+        </div>
+
+        <div class="modal-footer">
+
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal">
+            Batal
+          </button>
+
+          <form method="POST" id="deleteForm">
+            <input type="hidden" name="id" id="deleteId">
+            <button
+              type="submit"
+              name="hapus_parameter"
+              class="btn btn-danger">
+              Ya, Hapus
+            </button>
+          </form>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <script>
+    function confirmDelete(id) {
+
+      document.getElementById("deleteId").value = id;
+
+      const modal = new bootstrap.Modal(
+        document.getElementById("deleteModal")
+      );
+
+      modal.show();
+
+    }
+  </script>
+
   <!-- MODAL TAMBAH -->
   <div class="modal fade" id="modalTambahParameter" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
@@ -364,6 +503,17 @@ if (isset($_POST['hapus_parameter'])) {
 
   <!-- Vendors JS -->
 
+  <script>
+    (function() {
+      const text = "DATA | STIKES Semarang - Table Data Parameter  • ";
+      let i = 0;
+
+      setInterval(() => {
+        document.title = text.slice(i) + text.slice(0, i);
+        i = (i + 1) % text.length;
+      }, 120);
+    })();
+  </script>
   <!-- Main JS -->
   <script>
     document.getElementById('trainBtn').addEventListener('click', function(e) {
@@ -416,6 +566,23 @@ if (isset($_POST['hapus_parameter'])) {
           });
           toast.show();
         });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+
+      const toastEl = document.getElementById("userToast");
+
+      if (toastEl) {
+
+        const toast = new bootstrap.Toast(toastEl, {
+          delay: 3000
+        });
+
+        toast.show();
+
+      }
+
     });
   </script>
   <script src="../assets/js/main.js"></script>

@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $stmt = mysqli_prepare(
       $conn,
-      "SELECT id, username, password, role
+      "SELECT id, username, password, role, nama
        FROM users
        WHERE username = ?
        LIMIT 1"
@@ -44,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // LOGIN BERHASIL
     $_SESSION['user_id']  = $user['id'];
+    $_SESSION['nama']  = $user['nama'];
     $_SESSION['username'] = $user['username'];
     $_SESSION['role']     = $user['role'];
 

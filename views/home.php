@@ -3,15 +3,15 @@ require_once "../config.php";
 
 /* ================== STATISTIK ================== */
 $totalData = mysqli_fetch_assoc(
-  mysqli_query($conn, "SELECT COUNT(*) total FROM ibu_hamil")
+  mysqli_query($conn, "SELECT COUNT(*) total FROM ibu_hamil WHERE deleted_at IS NULL")
 )['total'];
 
 $beresiko = mysqli_fetch_assoc(
-  mysqli_query($conn, "SELECT COUNT(*) total FROM prediksi WHERE hasil='Berisiko Stunting'")
+  mysqli_query($conn, "SELECT COUNT(*) total FROM prediksi WHERE hasil='Berisiko Stunting' AND deleted_at IS NULL")
 )['total'];
 
 $normal = mysqli_fetch_assoc(
-  mysqli_query($conn, "SELECT COUNT(*) total FROM prediksi WHERE hasil='Tidak Berisiko'")
+  mysqli_query($conn, "SELECT COUNT(*) total FROM prediksi WHERE hasil='Tidak Berisiko' AND deleted_at IS NULL")
 )['total'];
 
 $persen = $totalData ? round(($beresiko / $totalData) * 100, 1) : 0;
@@ -36,6 +36,7 @@ $recent = mysqli_query($conn, "
     SELECT ibu_hamil.nama_ibu, prediksi.hasil, ibu_hamil.created_at
     FROM ibu_hamil
     LEFT JOIN prediksi ON prediksi.ibu_id = ibu_hamil.id
+    WHERE ibu_hamil.deleted_at IS NULL
     ORDER BY ibu_hamil.created_at DESC
     LIMIT 5
 ");
@@ -49,7 +50,7 @@ $recent = mysqli_query($conn, "
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>Dashboard Statistik Stunting</title>
+  <title>DASHBOARD | STIKES Semarang - Prediksi Bayi Stunting</title>
 
   <link rel="icon" type="image/x-icon" href="../assets/img/favicon/favicon.ico">
 
@@ -83,7 +84,7 @@ $recent = mysqli_query($conn, "
 
             <!-- ===== STAT CARDS ===== -->
             <div class="row g-4">
-              <div class="col-md-3">
+              <div class="col-md-4">
                 <div class="card text-center">
                   <div class="card-body">
                     <h6>Total Data</h6>
@@ -92,7 +93,7 @@ $recent = mysqli_query($conn, "
                 </div>
               </div>
 
-              <div class="col-md-3">
+              <div class="col-md-4">
                 <div class="card text-center">
                   <div class="card-body">
                     <h6>Beresiko</h6>
@@ -101,7 +102,7 @@ $recent = mysqli_query($conn, "
                 </div>
               </div>
 
-              <div class="col-md-3">
+              <div class="col-md-4">
                 <div class="card text-center">
                   <div class="card-body">
                     <h6>Tidak Beresiko</h6>
@@ -110,14 +111,14 @@ $recent = mysqli_query($conn, "
                 </div>
               </div>
 
-              <div class="col-md-3">
+              <!-- <div class="col-md-3">
                 <div class="card text-center">
                   <div class="card-body">
                     <h6>Persentase</h6>
                     <h2><?= $persen ?>%</h2>
                   </div>
                 </div>
-              </div>
+              </div> -->
             </div>
 
             <!-- ===== CHART ===== -->
@@ -154,7 +155,7 @@ $recent = mysqli_query($conn, "
                         <tr>
                           <th>Nama</th>
                           <th>Hasil</th>
-                          <th>Tanggal</th>
+                          <th>Tanggal Periksa</th>
                         </tr>
                       </thead>
                       <tbody>
